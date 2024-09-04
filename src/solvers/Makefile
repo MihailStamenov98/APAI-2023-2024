@@ -5,8 +5,10 @@ LDFLAGS = -fopenmp
 LIBS = 
 
 # Source files in folder A
-SRC_SolverDest = bellman_ford_parallel_dest.c
-SRC_SolverSource = bellman_ford_parallel_source.c
+SRC_SolverDest = output_structures.c \
+				 bellman_ford_parallel_dest.c
+SRC_SolverSource = output_structures.c \
+				   bellman_ford_parallel_source.c
 
 # Source files in folder B
 SRC_GenerateGraph = ../generate_graphs/compare_graphs.c \
@@ -21,8 +23,8 @@ OBJDIR_Solvers = obj
 OBJDIR_Generators = obj_generators
 
 # Object files for program1 and program2
-OBJ_dest = $(OBJDIR_Solvers)/bellman_ford_parallel_dest.o
-OBJ_source = $(OBJDIR_Solvers)/bellman_ford_parallel_source.o
+OBJ_dest = $(patsubst %.c,$(OBJDIR_Solvers)/%.o,$(SRC_SolverDest))
+OBJ_source = $(patsubst %.c,$(OBJDIR_Solvers)/%.o,$(SRC_SolverSource))
 
 # Object files for B
 OBJ_Generators = $(patsubst ../generate_graphs/%.c,$(OBJDIR_Generators)/%.o,$(SRC_GenerateGraph))
@@ -34,17 +36,17 @@ PROGRAM_SOURCE = bf_source
 # Targets to build specific programs
 .PHONY: dest source all clean
 
-# Target A builds bf_dest.out
+# Target A builds bf_dest
 dest: $(PROGRAM_DEST)
 
-# Target B builds bf_source.out
+# Target B builds bf_source
 source: $(PROGRAM_SOURCE)
 
-# Build the executable for bf_dest.out
+# Build the executable for bf_dest
 $(PROGRAM_DEST): $(OBJ_dest) $(OBJ_Generators)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-# Build the executable for bf_source.out
+# Build the executable for bf_source
 $(PROGRAM_SOURCE): $(OBJ_source) $(OBJ_Generators)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 

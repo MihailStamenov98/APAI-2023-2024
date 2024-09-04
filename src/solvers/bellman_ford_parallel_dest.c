@@ -6,7 +6,8 @@
 #include <stdbool.h>
 #include "../generate_graphs/graph_generator.h"
 #include "../generate_graphs/output_graphs.h"
-
+#include <omp.h>
+#include "output_structure.h"
 #define INF 1000000
 
 /**
@@ -17,18 +18,27 @@
  * @param *hasNegativeCycle a bool variable to recode if there are negative cycles
  * @param *negativeCycleNode a bool variable to recode the node to strat the search from
  */
-void bellmanFord(int p, DestGraph g, int *dist, bool *hasNegativeCycle, int *negativeCycleNode)
+BFOutput bellmanFord(int p, DestGraph g, int startNode)
 {
-    int *predecessor = (int *)malloc(g.numNodes * sizeof(int));
+    BFOutput result;
+    double tstart, tstop;
+    tstart = omp_get_wtime();
+
+    result.startNode = startNode;
+    result.predecessor = (int *)malloc(g.numNodes * sizeof(int));
+    result.dist = (int *)malloc(g.numNodes * sizeof(int));
+    result.negativeCycleNode = -1;
+    result.numberNodes = g.numNodes;
+    omp_set_num_threads(p);
 
     // initialize distances
 #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < g.numNodes; i++)
     {
-        dist[i] = INF;
-        predecessor[i] = -1;
+        result.dist[i] = INF;
+        result.predecessor[i] = -1;
     }
-    dist[0] = 0;
+    result.dist[startNode] = 0;
     bool has_changed = false;
     for (int iter = 0; iter < g.numNodes; iter++)
     {
@@ -39,18 +49,18 @@ void bellmanFord(int p, DestGraph g, int *dist, bool *hasNegativeCycle, int *neg
             {
                 int source = g.nodes[dest].inEdges[j].source;
                 int weight = g.nodes[dest].inEdges[j].weight;
-                int new_dis = dist[source] + weight;
-                if (new_dis < dist[dest])
+                int new_dis = result.dist[source] + weight;
+                if (new_dis < result.dist[dest])
                 {
                     has_changed = true;
-                    dist[dest] = new_dis;
-                    predecessor[dest] = source;
+                    result.dist[dest] = new_dis;
+                    result.predecessor[dest] = source;
                     if (iter == g.numNodes - 1)
                     {
 #pragma omp critical
                         {
-                            *negativeCycleNode = source;
-                            *hasNegativeCycle = true;
+                            result.negativeCycleNode = source;
+                            result.hasNegativeCycle = true;
                         }
                     }
                 }
@@ -58,44 +68,23 @@ void bellmanFord(int p, DestGraph g, int *dist, bool *hasNegativeCycle, int *neg
         }
         if (!has_changed)
         {
-            *hasNegativeCycle = false;
+            result.hasNegativeCycle = false;
             return;
         }
     }
-
-    // step 4: free memory (if any)
+    tstop = omp_get_wtime();
+    result.timeInSeconds = tstop - tstart;
+    return result;
 }
 
-int main(int argc, char **argv)
+int main()
 {
-    /*DestGraph readGraphNegativeCycle = readDestGraphFromFile("negative_cycle.txt");
-    int *dist = (int *)malloc(readGraphNegativeCycle.numNodes * sizeof(int));
-    int *node = (int *)malloc(sizeof(int));
-    *node = -1;
-    bool *hasNegativeCycle = (bool *)malloc(sizeof(bool));
-    // printDestGraph(readGraphNegativeCycle);
-    bellmanFord(1, readGraphNegativeCycle, dist, hasNegativeCycle, node);
-    printf("Is there negative cycle: %d\n the node to start from is : %d\n", *hasNegativeCycle, *node);*/
-    DestGraph readGraph = readDestGraphFromFile("graph_no_cycle_5.txt");
-    int *distNoCycle = (int *)malloc(readGraph.numNodes * sizeof(int));
-    int *nodeNoCycle = (int *)malloc(sizeof(int));
-    *nodeNoCycle = -1;
-    bool *hasNegativeCycleNoCycle = (bool *)malloc(sizeof(bool));
-    // printDestGraph(readGraphNegativeCycle);
-    bellmanFord(2, readGraph, distNoCycle, hasNegativeCycleNoCycle, nodeNoCycle);
-    printf("Is there negative cycle: %d\n the node to start from is : %d\n", *hasNegativeCycleNoCycle, *nodeNoCycle);
-    for (int i = 0; i < readGraph.numNodes; ++i)
-    {
-        printf("Node %d has dist = %d\n", i, distNoCycle[i]);
-    }
+    DestGraph readGraph = readDestGraphFromFile("../../data/no_cycle/graph_no_cycle_5.txt");
+    BFOutput result = bellmanFord(2, readGraph, 0);
+    writeResult(result, "../../results/no_cycle/graph_no_cycle_5.txt");
 
-    DestGraph readGraphNegativeCycle = readDestGraphFromFile("graph_cycle_5.txt");
-    int *distCycle = (int *)malloc(readGraphNegativeCycle.numNodes * sizeof(int));
-    int *nodeCycle = (int *)malloc(sizeof(int));
-    *nodeCycle = -1;
-    bool *hasNegativeCycle = (bool *)malloc(sizeof(bool));
-    // printDestGraph(readGraphNegativeCycle);
-    bellmanFord(2, readGraphNegativeCycle, distCycle, hasNegativeCycle, nodeCycle);
-    printf("Is there negative cycle: %d\n the node to start from is : %d\n", *hasNegativeCycle, *nodeCycle);
+    DestGraph readGraphNegativeCycle = readDestGraphFromFile("../../data/cycle/graph_cycle_5.txt");
+    BFOutput result = bellmanFord(2, readGraphNegativeCycle, 0);
+    writeResult(result, "../../results/cycle/graph_no_cycle_5.txt");
     return 0;
 }

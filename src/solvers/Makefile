@@ -1,66 +1,69 @@
 # Variables
 CC = gcc
-CFLAGS = -Wall -Wextra -I../B
-LDFLAGS = -L../B
+CFLAGS = -Wall -Wextra -I../generate_graphs -fopenmp
+LDFLAGS = -fopenmp
 LIBS = 
 
 # Source files in folder A
-SRC_A1 = program1.c
-SRC_A2 = program2.c
+SRC_SolverDest = bellman_ford_parallel_dest.c
+SRC_SolverSource = bellman_ford_parallel_source.c
 
 # Source files in folder B
-SRC_B = ../generate_graphs/compare_graphs.c \
-      ../generate_graphs/output_graphs.c \
-      ../generate_graphs/read_graphs.c \
-	  ../generate_graphs/graph_generator.c
+SRC_GenerateGraph = ../generate_graphs/compare_graphs.c \
+      				../generate_graphs/output_graphs.c \
+      				../generate_graphs/read_graphs.c \
+      				../generate_graphs/graph_generator.c
 
 # Object directory for A
-OBJDIR_A = obj
+OBJDIR_Solvers = obj
 
 # Object directory for B
-OBJDIR_B = obj_b
+OBJDIR_Generators = obj_generators
 
 # Object files for program1 and program2
-OBJ_A1 = $(OBJDIR_A)/program1.o
-OBJ_A2 = $(OBJDIR_A)/program2.o
+OBJ_dest = $(OBJDIR_Solvers)/bellman_ford_parallel_dest.o
+OBJ_source = $(OBJDIR_Solvers)/bellman_ford_parallel_source.o
 
 # Object files for B
-OBJ_B = $(SRC_B:../B/%.c=$(OBJDIR_B)/%.o)
+OBJ_Generators = $(patsubst ../generate_graphs/%.c,$(OBJDIR_Generators)/%.o,$(SRC_GenerateGraph))
 
 # Target executables
-PROGRAM1 = program1.out
-PROGRAM2 = program2.out
+PROGRAM_DEST = bf_dest
+PROGRAM_SOURCE = bf_source
 
 # Targets to build specific programs
-.PHONY: A B all clean
+.PHONY: dest source all clean
 
-# Target A builds program1.out
-A: $(PROGRAM1)
+# Target A builds bf_dest.out
+dest: $(PROGRAM_DEST)
 
-# Target B builds program2.out
-B: $(PROGRAM2)
+# Target B builds bf_source.out
+source: $(PROGRAM_SOURCE)
 
-# Build the executable for program1
-$(PROGRAM1): $(OBJ_A1) $(OBJ_B)
+# Build the executable for bf_dest.out
+$(PROGRAM_DEST): $(OBJ_dest) $(OBJ_Generators)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-# Build the executable for program2
-$(PROGRAM2): $(OBJ_A2) $(OBJ_B)
+# Build the executable for bf_source.out
+$(PROGRAM_SOURCE): $(OBJ_source) $(OBJ_Generators)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-# Compile source files in folder A to object files in OBJDIR_A
-$(OBJDIR_A)/%.o: %.c | $(OBJDIR_A)
+# Compile source files in folder A to object files in OBJDIR_Solvers
+$(OBJDIR_Solvers)/%.o: %.c | $(OBJDIR_Solvers)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Compile source files in folder B to object files in OBJDIR_B
-$(OBJDIR_B)/%.o: ../B/%.c | $(OBJDIR_B)
+# Compile source files in folder B to object files in OBJDIR_Generators
+$(OBJDIR_Generators)/%.o: ../generate_graphs/%.c | $(OBJDIR_Generators)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Create the object directories if they don't exist
-$(OBJDIR_A) $(OBJDIR_B):
-	mkdir -p $(OBJDIR_A) $(OBJDIR_B)
+$(OBJDIR_Solvers) $(OBJDIR_Generators):
+	@if not exist $(OBJDIR_Solvers) mkdir $(OBJDIR_Solvers)
+	@if not exist $(OBJDIR_Generators) mkdir $(OBJDIR_Generators)
 
 # Clean up
 clean:
-	rm -f $(OBJDIR_A)/*.o $(OBJDIR_B)/*.o $(PROGRAM1) $(PROGRAM2)
-	rmdir $(OBJDIR_A) $(OBJDIR_B)
+	-del /f /q $(OBJDIR_Solvers)\*.o $(OBJDIR_Generators)\*.o 2>nul
+	-del /f /q bf_dest.exe bf_source.exe 2>nul
+	-rmdir /q /s $(OBJDIR_Solvers) 2>nul
+	-rmdir /q /s $(OBJDIR_Generators) 2>nul

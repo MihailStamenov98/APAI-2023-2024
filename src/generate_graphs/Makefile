@@ -4,22 +4,21 @@ CC = gcc
 # Compiler flags
 CFLAGS = -Wall -Wextra
 
+# Object directory
 OBJDIR = obj
 
 # Source files
-SRC = ./compare_graphs.c \
-      ./output_graphs.c \
-      ./read_graphs.c \
-	  ./graph_generator.c \
-	  ./main.c
+SRC = compare_graphs.c \
+      output_graphs.c \
+      read_graphs.c \
+      graph_generator.c \
+      main.c
 
+# Object files (place .o files in the OBJDIR directory)
+OBJ = $(patsubst %.c,$(OBJDIR)/%.o,$(SRC))
 
-# Object files
-OBJ = $(SRC:.c=$(OBJDIR_B).o)
-# Dependency files
-DEPS = $(SRC:.c=.d)
 # Executable name
-TARGET = generate_graphs
+TARGET = generate_graphs.exe
 
 # Default rule
 all: $(TARGET)
@@ -28,12 +27,14 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $(OBJ)
 
-# Compile each .c file into .o object files
-%.o: %.c
+# Compile each .c file into .o object files in the OBJDIR directory
+$(OBJDIR)/%.o: %.c
+	@if not exist $(OBJDIR) mkdir $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Clean up object files and the executable
 clean:
-	rm -f $(OBJ) $(TARGET)
+	del /Q $(OBJDIR)\*.o $(TARGET)
+	if exist $(OBJDIR) rmdir $(OBJDIR)
 
 .PHONY: clean

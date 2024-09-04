@@ -21,9 +21,14 @@ DestGraph createGraphNoNegativeCycle(int numNodes, int numNeighbours)
         g.nodes[i].inEdges = (DestEdge *)malloc(g.nodes[i].inNeighbours * sizeof(DestEdge));
         for (int j = 0; j < g.nodes[i].inNeighbours; j++)
         {
-            g.nodes[i].inEdges[j].source = randInt(0, numNodes - 1);
-            g.nodes[g.nodes[i].inEdges[j].source].outNeighbours++;
-            g.nodes[i].inEdges[j].weight = randInt(-10, 20);
+            int source = i;
+            while (source == i)
+            {
+                source = randInt(0, numNodes - 1);
+            }
+            g.nodes[i].inEdges[j].source = source;
+            g.nodes[source].outNeighbours++;
+            g.nodes[i].inEdges[j].weight = randInt(0, 20);
         }
     }
     printf("Graph generated\n");

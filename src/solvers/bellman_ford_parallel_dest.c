@@ -94,9 +94,9 @@ int main()
     DestGraph readGraph = readDestGraphFromFile("../../data/no_cycle/graph_no_cycle_5.txt");
     BFOutput result = bellmanFord(2, readGraph, 0);
     printf("---------------- %d\n", result.hasNegativeCycle);
-    writeResult(result, "../../results/no_cycle/graph_no_cycle_5.txt", true);
+    writeResult(result, "../../results/omp_dest/no_cycle/graph_no_cycle_5.txt", true);
     DestGraph readGraphNegativeCycle = readDestGraphFromFile("../../data/cycle/graph_cycle_5.txt");
     BFOutput resultCycle = bellmanFord(2, readGraphNegativeCycle, 0);
-    writeResult(resultCycle, "../../results/cycle/graph_cycle_5.txt", true);
+    writeResult(resultCycle, "../../results/omp_dest/cycle/graph_cycle_5.txt", true);
     return 0;
 }

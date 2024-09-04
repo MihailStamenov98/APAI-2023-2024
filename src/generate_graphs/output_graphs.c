@@ -1,13 +1,13 @@
 #include "output_graphs.h"
 
-void printSorceGraph(SorceGraph g)
+void printSourceGraph(SourceGraph g)
 {
     for (int i = 0; i < g.numNodes; ++i)
     {
         printf("Node %d\n", i);
         for (int j = 0; j < g.nodes[i].outNeighbours; ++j)
         {
-            printf("Edge sorce: %d, dest: %d, weight: %d\n", i, g.nodes[i].outEdges[j].dest, g.nodes[i].outEdges[j].weight);
+            printf("Edge source: %d, dest: %d, weight: %d\n", i, g.nodes[i].outEdges[j].dest, g.nodes[i].outEdges[j].weight);
         }
     }
 }
@@ -19,7 +19,7 @@ void printDestGraph(DestGraph g)
         printf("Node %d\n", i);
         for (int j = 0; j < g.nodes[i].inNeighbours; ++j)
         {
-            printf("Edge sorce: %d, dest: %d, weight: %d\n", g.nodes[i].inEdges[j].source, i, g.nodes[i].inEdges[j].weight);
+            printf("Edge source: %d, dest: %d, weight: %d\n", g.nodes[i].inEdges[j].source, i, g.nodes[i].inEdges[j].weight);
         }
     }
 }

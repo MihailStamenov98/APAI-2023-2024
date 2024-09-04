@@ -30,7 +30,7 @@ DestGraph readDestGraphFromFile(const char *filename)
     return g;
 }
 
-SorceGraph readSorceGraphFromFile(const char *filename)
+SourceGraph readSourceGraphFromFile(const char *filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -39,15 +39,15 @@ SorceGraph readSorceGraphFromFile(const char *filename)
         exit(EXIT_FAILURE);
     }
 
-    SorceGraph g;
+    SourceGraph g;
     fscanf(file, "g %d\n", &g.numNodes);
-    g.nodes = (SorceNode *)malloc(g.numNodes * sizeof(SorceNode));
+    g.nodes = (SourceNode *)malloc(g.numNodes * sizeof(SourceNode));
     int *indexeForNode = (int *)malloc(g.numNodes * sizeof(int));
     int numEdgesOut = 0, numEdgesIn = 0;
     for (int i = 0; i < g.numNodes; i++)
     {
         fscanf(file, "n %d %d\n", &g.nodes[i].inNeighbours, &g.nodes[i].outNeighbours);
-        g.nodes[i].outEdges = (SorceEdge *)malloc(g.nodes[i].outNeighbours * sizeof(SorceEdge));
+        g.nodes[i].outEdges = (SourceEdge *)malloc(g.nodes[i].outNeighbours * sizeof(SourceEdge));
         indexeForNode[i] = 0;
         numEdgesOut = numEdgesOut + g.nodes[i].outNeighbours;
         numEdgesIn = numEdgesIn + g.nodes[i].inNeighbours;
@@ -57,13 +57,13 @@ SorceGraph readSorceGraphFromFile(const char *filename)
 
     for (int i = 0; i < numEdgesIn; i++)
     {
-        int sorce;
+        int source;
         int dest;
         int weight;
-        fscanf(file, "e %d %d %d\n", &sorce, &dest, &weight);
-        g.nodes[sorce].outEdges[indexeForNode[sorce]].weight = weight;
-        g.nodes[sorce].outEdges[indexeForNode[sorce]].dest = dest;
-        indexeForNode[sorce]++;
+        fscanf(file, "e %d %d %d\n", &source, &dest, &weight);
+        g.nodes[source].outEdges[indexeForNode[source]].weight = weight;
+        g.nodes[source].outEdges[indexeForNode[source]].dest = dest;
+        indexeForNode[source]++;
     }
 
     fclose(file);

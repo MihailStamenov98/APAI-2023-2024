@@ -5,7 +5,7 @@ int randInt(int min, int max)
     return min + rand() % (max - min + 1);
 }
 
-DestGraph createGraphNoNegativeCycle(int numNodes)
+DestGraph createGraphNoNegativeCycle(int numNodes, int numNeighbours)
 {
     DestGraph g;
     g.numNodes = numNodes;
@@ -17,7 +17,7 @@ DestGraph createGraphNoNegativeCycle(int numNodes)
     }
     for (int i = 0; i < g.numNodes; i++)
     {
-        g.nodes[i].inNeighbours = randInt(1, 3);
+        g.nodes[i].inNeighbours = randInt(1, numNeighbours);
         g.nodes[i].inEdges = (DestEdge *)malloc(g.nodes[i].inNeighbours * sizeof(DestEdge));
         for (int j = 0; j < g.nodes[i].inNeighbours; j++)
         {
@@ -32,11 +32,11 @@ DestGraph createGraphNoNegativeCycle(int numNodes)
 }
 
 // Function to create a graph with a negative cycle
-DestGraph createGraphWithNegativeCycle(int numNodes)
+DestGraph createGraphWithNegativeCycle(int numNodes, int numNeighbours)
 {
-    DestGraph g = createGraphNoNegativeCycle(numNodes);
+    DestGraph g = createGraphNoNegativeCycle(numNodes, numNeighbours);
     // Introduce a negative cycle
-    int cycleLen = randInt(3, 200); // Create a small cycle of 3-5 nodes
+    int cycleLen = randInt(3, numNodes); // Create a small cycle of 3-5 nodes
     int cycleStart = randInt(0, numNodes - cycleLen);
     for (int i = 0; i < cycleLen; i++)
     {
@@ -61,7 +61,7 @@ void freeDestGraph(DestGraph g)
 
     free(g.nodes);
 }
-void freeSorceGraph(SorceGraph g)
+void freeSourceGraph(SourceGraph g)
 {
     for (int i = 0; i < g.numNodes; ++i)
     {
@@ -69,25 +69,4 @@ void freeSorceGraph(SorceGraph g)
     }
 
     free(g.nodes);
-}
-
-int main()
-{
-    int size = 10;
-    DestGraph destGNoCycle = createGraphNoNegativeCycle(size);
-    char filenameNoCycle[50];
-    snprintf(filenameNoCycle, sizeof(filenameNoCycle), "graph_no_cycle_%d.txt", size);
-    writeGraphToFile(destGNoCycle, filenameNoCycle);
-
-    DestGraph readDestG = readDestGraphFromFile(filenameNoCycle);
-    printf("%d\n", compareDestGraphs(destGNoCycle, readDestG));
-
-    SorceGraph readSorceG = readSorceGraphFromFile(filenameNoCycle);
-    // printSorceGraph(readSorceG);
-    printf("%d\n", compareGraphs(destGNoCycle, readSorceG));
-
-    freeDestGraph(readDestG);
-    freeDestGraph(destGNoCycle);
-    freeSorceGraph(readSorceG);
-    return 0;
 }

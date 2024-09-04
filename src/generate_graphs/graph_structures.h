@@ -13,7 +13,7 @@ typedef struct
 {
     int dest;
     int weight;
-} SorceEdge;
+} SourceEdge;
 
 typedef struct
 {
@@ -26,8 +26,8 @@ typedef struct
 {
     int inNeighbours; // count of edges
     int outNeighbours;
-    SorceEdge *outEdges;
-} SorceNode;
+    SourceEdge *outEdges;
+} SourceNode;
 
 typedef struct
 {
@@ -38,7 +38,7 @@ typedef struct
 typedef struct
 {
     int numNodes;
-    SorceNode *nodes;
-} SorceGraph;
+    SourceNode *nodes;
+} SourceGraph;
 
 #endif // GRAPH_STRUCTURES_H

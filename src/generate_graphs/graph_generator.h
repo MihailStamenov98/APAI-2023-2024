@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
-#include "graph_structures.h" // Ensure these headers define DestGraph, SorceGraph, etc.
+#include "graph_structures.h" // Ensure these headers define DestGraph, SourceGraph, etc.
 #include "output_graphs.h"
 #include "compare_graphs.h"
 #include "read_graphs.h"
@@ -17,15 +17,15 @@
 int randInt(int min, int max);
 
 // Function to create a graph without any negative cycle
-DestGraph createGraphNoNegativeCycle(int numNodes);
+DestGraph createGraphNoNegativeCycle(int numNodes, int numNeighbours);
 
 // Function to create a graph that contains a negative cycle
-DestGraph createGraphWithNegativeCycle(int numNodes);
+DestGraph createGraphWithNegativeCycle(int numNodes, int numNeighbours);
 
 // Function to free the memory allocated for a DestGraph
 void freeDestGraph(DestGraph g);
 
-// Function to free the memory allocated for a SorceGraph
-void freeSorceGraph(SorceGraph g);
+// Function to free the memory allocated for a SourceGraph
+void freeSourceGraph(SourceGraph g);
 
 #endif // GRAPH_OPERATIONS_H

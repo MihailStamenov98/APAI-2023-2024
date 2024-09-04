@@ -1,6 +1,6 @@
 #include "compare_graphs.h"
 
-bool compareGraphs(DestGraph g1, SorceGraph g2)
+bool compareGraphs(DestGraph g1, SourceGraph g2)
 {
     if (g1.numNodes != g2.numNodes)
     {
@@ -37,16 +37,16 @@ bool compareGraphs(DestGraph g1, SorceGraph g2)
                     found = true;
                     if ((g1.nodes[dest].inEdges[j].weight != g2.nodes[source].outEdges[h].weight))
                     {
-                        printf("Edge dest: %d, sorce: %d hase different weights in 2 graphs\n", dest, source);
+                        printf("Edge dest: %d, source: %d hase different weights in 2 graphs\n", dest, source);
                         printf("In dest graph the weight is %d\n", g1.nodes[dest].inEdges[source].weight);
-                        printf("In sorce graph the weight is %d\n", g2.nodes[source].outEdges[dest].weight);
+                        printf("In source graph the weight is %d\n", g2.nodes[source].outEdges[dest].weight);
                         return false;
                     }
                 }
             }
             if (!found)
             {
-                printf("The edge with sorce: %d, dest: %d and weight: %d was not found in sorcegraph\n",
+                printf("The edge with source: %d, dest: %d and weight: %d was not found in sourcegraph\n",
                        source,
                        dest,
                        g1.nodes[dest].inEdges[j].weight);

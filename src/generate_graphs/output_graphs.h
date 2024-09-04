@@ -3,10 +3,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "graph_structures.h" // Assuming this header defines SorceGraph and DestGraph
+#include "graph_structures.h" // Assuming this header defines SourceGraph and DestGraph
 
 // Function declarations
-void printSorceGraph(SorceGraph g);
+void printSourceGraph(SourceGraph g);
 void printDestGraph(DestGraph g);
 void writeGraphToFile(DestGraph g, const char *filename);
 

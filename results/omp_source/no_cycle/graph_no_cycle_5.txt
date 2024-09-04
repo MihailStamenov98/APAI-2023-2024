@@ -1,0 +1,8 @@
+There is NOT negative cycle in the graph
+timeInSeconds = 0.002000
+numberNodes = 5
+Distance from node 0 to node = 0 is 0
+Distance from node 0 to node = 1 is 13
+Distance from node 0 to node = 2 is 14
+Distance from node 0 to node = 3 is 18
+Distance from node 0 to node = 4 is 8

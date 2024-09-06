@@ -33,6 +33,18 @@ OBJ_Generators = $(patsubst ../generate_graphs/%.c,$(OBJDIR_Generators)/%.o,$(SR
 PROGRAM_DEST = bf_dest
 PROGRAM_SOURCE = bf_source
 
+# Check for operating system
+ifeq ($(OS),Windows_NT)
+    RM = del /f /q
+    MKDIR = if not exist $(OBJDIR_Solvers) mkdir $(OBJDIR_Solvers)
+    MKDIR += && if not exist $(OBJDIR_Generators) mkdir $(OBJDIR_Generators)
+    RMDIR = rmdir /s /q
+else
+    RM = rm -f
+    MKDIR = mkdir -p $(OBJDIR_Solvers) &&  mkdir -p $(OBJDIR_Generators) 
+    RMDIR = rmdir
+endif
+
 # Targets to build specific programs
 .PHONY: dest source all clean
 
@@ -52,20 +64,29 @@ $(PROGRAM_SOURCE): $(OBJ_source) $(OBJ_Generators)
 
 # Compile source files in folder A to object files in OBJDIR_Solvers
 $(OBJDIR_Solvers)/%.o: %.c | $(OBJDIR_Solvers)
+	$(MKDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Compile source files in folder B to object files in OBJDIR_Generators
 $(OBJDIR_Generators)/%.o: ../generate_graphs/%.c | $(OBJDIR_Generators)
+	$(MKDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Create the object directories if they don't exist
 $(OBJDIR_Solvers) $(OBJDIR_Generators):
-	@if not exist $(OBJDIR_Solvers) mkdir $(OBJDIR_Solvers)
-	@if not exist $(OBJDIR_Generators) mkdir $(OBJDIR_Generators)
+	$(MKDIR)
 
 # Clean up
 clean:
-	-del /f /q $(OBJDIR_Solvers)\*.o $(OBJDIR_Generators)\*.o 2>nul
-	-del /f /q bf_dest.exe bf_source.exe 2>nul
-	-rmdir /q /s $(OBJDIR_Solvers) 2>nul
-	-rmdir /q /s $(OBJDIR_Generators) 2>nul
+ifeq ($(OS),Windows_NT)
+	$(RM) $(OBJDIR_Solvers)\*.o $(OBJDIR_Generators)\*.o 2>nul
+	$(RM) $(PROGRAM_DEST) $(PROGRAM_SOURCE) 2>nul
+	$(RMDIR) /q /s $(OBJDIR_Solvers) 2>nul
+	$(RMDIR) /q /s $(OBJDIR_Generators) 2>nul
+else
+	$(RM) $(OBJDIR_Solvers)/*.o $(OBJDIR_Generators)/*.o 2> /dev/null
+	$(RM) $(PROGRAM_DEST) $(PROGRAM_SOURCE) 2> /dev/null
+	$(RMDIR) $(OBJDIR_Solvers) 2> /dev/null || true
+	$(RMDIR) $(OBJDIR_Generators) 2> /dev/null || true
+endif
+

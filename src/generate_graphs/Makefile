@@ -18,7 +18,18 @@ SRC = compare_graphs.c \
 OBJ = $(patsubst %.c,$(OBJDIR)/%.o,$(SRC))
 
 # Executable name
-TARGET = generate_graphs.exe
+TARGET = generate_graphs
+
+# Check for operating system
+ifeq ($(OS),Windows_NT)
+    RM = del /Q
+    MKDIR = if not exist $(OBJDIR) mkdir $(OBJDIR)
+    RMDIR = rmdir $(OBJDIR)
+else
+    RM = rm -f
+    MKDIR = mkdir -p $(OBJDIR)
+    RMDIR = rmdir $(OBJDIR)
+endif
 
 # Default rule
 all: $(TARGET)
@@ -29,12 +40,12 @@ $(TARGET): $(OBJ)
 
 # Compile each .c file into .o object files in the OBJDIR directory
 $(OBJDIR)/%.o: %.c
-	@if not exist $(OBJDIR) mkdir $(OBJDIR)
+	$(MKDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Clean up object files and the executable
 clean:
-	del /Q $(OBJDIR)\*.o $(TARGET)
-	if exist $(OBJDIR) rmdir $(OBJDIR)
+	$(RM) $(OBJDIR)/*.o $(TARGET)
+	$(RMDIR)
 
 .PHONY: clean

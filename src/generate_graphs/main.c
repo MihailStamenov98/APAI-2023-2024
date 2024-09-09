@@ -8,13 +8,13 @@ int main()
 {
     int size = 5;
 
-    DestGraph destGNoCycle = createGraphNoNegativeCycle(size, 4);
+    DestGraph* destGNoCycle = createGraphNoNegativeCycle(size, 4);
     char filenameNoCycle[50];
     snprintf(filenameNoCycle, sizeof(filenameNoCycle), "../../data/no_cycle/graph_no_cycle_%d.txt", size);
     writeGraphToFile(destGNoCycle, filenameNoCycle);
     freeDestGraph(destGNoCycle);
 
-    DestGraph destGCycle = createGraphWithNegativeCycle(size, 4);
+    DestGraph* destGCycle = createGraphWithNegativeCycle(size, 4);
     char filenameCycle[50];
     snprintf(filenameCycle, sizeof(filenameCycle), "../../data/cycle/graph_cycle_%d.txt", size);
     writeGraphToFile(destGCycle, filenameCycle);

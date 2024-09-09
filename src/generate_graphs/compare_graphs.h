@@ -7,7 +7,7 @@
 
 // Function to compare a DestGraph and a SourceGraph
 // Returns true if the graphs are equivalent, false otherwise
-bool compareGraphs(DestGraph g1, SourceGraph g2);
-bool compareDestGraphs(DestGraph g1, DestGraph g2);
+bool compareGraphs(DestGraph* g1, SourceGraph* g2);
+bool compareDestGraphs(DestGraph* g1, DestGraph* g2);
 
 #endif // COMPARE_GRAPHS_H

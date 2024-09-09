@@ -6,8 +6,8 @@
 #include "graph_structures.h" // Assuming this header defines SourceGraph and DestGraph
 
 // Function declarations
-void printSourceGraph(SourceGraph g);
-void printDestGraph(DestGraph g);
-void writeGraphToFile(DestGraph g, const char *filename);
+void printSourceGraph(SourceGraph* g);
+void printDestGraph(DestGraph* g);
+void writeGraphToFile(DestGraph* g, const char *filename);
 
 #endif // OUTPUT_GRAPHS_H

@@ -1,6 +1,6 @@
 There is negative cycle in the graph
-From this node one can bactrack to find the cycle = 2
-timeInSeconds = 0.000000
+From this node one can bactrack to find the cycle = 3
+timeInSeconds = 0.001000
 numberNodes = 5
 Predcessor of node 0 is node 1
 Predcessor of node 1 is node 2

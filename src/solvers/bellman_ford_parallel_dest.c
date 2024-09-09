@@ -18,57 +18,69 @@
  * @param *hasNegativeCycle a bool variable to recode if there are negative cycles
  * @param *negativeCycleNode a bool variable to recode the node to strat the search from
  */
-BFOutput bellmanFord(int p, DestGraph g, int startNode)
+BFOutput* bellmanFord(int p, DestGraph* g, int startNode)
 {
-    BFOutput result;
+    BFOutput* result;
+    result = (BFOutput *)malloc(sizeof(BFOutput));
+
     double tstart, tstop;
     tstart = omp_get_wtime();
 
-    result.startNode = startNode;
-    result.predecessor = (int *)malloc(g.numNodes * sizeof(int));
-    result.dist = (int *)malloc(g.numNodes * sizeof(int));
-    result.negativeCycleNode = -1;
-    result.numberNodes = g.numNodes;
+    (*result).startNode = startNode;
+    (*result).predecessor = (int *)malloc((*g).numNodes * sizeof(int));
+    (*result).dist = (int *)malloc((*g).numNodes * sizeof(int));
+    (*result).negativeCycleNode = -1;
+    (*result).numberNodes = (*g).numNodes;
+    bool *wasUpdatedLastIter = (bool *)malloc((*g).numNodes * sizeof(bool));
+    bool *isUpdatedThisIter = (bool *)malloc((*g).numNodes * sizeof(bool));
 
     omp_set_num_threads(p);
 
     // initialize distances
 #pragma omp parallel for
-    for (int i = 0; i < g.numNodes; i++)
+    for (int i = 0; i < (*g).numNodes; i++)
     {
-        result.dist[i] = INF;
-        result.predecessor[i] = -1;
+        (*result).dist[i] = INF;
+        (*result).predecessor[i] = -1;
+        wasUpdatedLastIter[i] = false;
+        isUpdatedThisIter[i] = false;
     }
-    result.dist[startNode] = 0;
+    (*result).dist[startNode] = 0;
+    wasUpdatedLastIter[startNode] = true;
     bool has_changed = false;
-    for (int iter = 0; iter < g.numNodes; iter++)
+    for (int iter = 0; iter < (*g).numNodes; iter++)
     {
+#pragma omp parallel for
+        for (int i = 0; i < (*g).numNodes; i++)
+        {
+            isUpdatedThisIter[i] = false;
+        }
 #pragma omp parallel for reduction(| : has_changed) schedule(dynamic)
-        for (int dest = 0; dest < g.numNodes; ++dest)
+        for (int dest = 0; dest < (*g).numNodes; ++dest)
         {
             // int thread = omp_get_thread_num();
             //  printf("Thread %d works on node %d\n", thread, dest);
-            for (int j = 0; j < g.nodes[dest].inNeighbours; ++j)
+            for (int j = 0; j < (*g).nodes[dest].inNeighbours; ++j)
             {
-                int source = g.nodes[dest].inEdges[j].source;
-                if (result.dist[source] != INF)
+                int source = (*g).nodes[dest].inEdges[j].source;
+                if (wasUpdatedLastIter[source])
                 {
-
-                    int weight = g.nodes[dest].inEdges[j].weight;
-                    int new_dis = result.dist[source] + weight;
-                    // printf("sorce = %d, dest = %d, weight= %d, dist_dest = %d, dist_source = %d, new_weight = %d\n", source, dest, weight, result.dist[dest], result.dist[source], new_dis);
-                    if (new_dis < result.dist[dest])
+                    int weight = (*g).nodes[dest].inEdges[j].weight;
+                    int new_dis = (*result).dist[source] + weight;
+                    // printf("source = %d, dest = %d, weight= %d, dist_dest = %d, dist_source = %d, new_weight = %d\n", source, dest, weight, result.dist[dest], result.dist[source], new_dis);
+                    if (new_dis < (*result).dist[dest])
                     {
+                        isUpdatedThisIter[dest] = true;
                         has_changed = true;
-                        result.dist[dest] = new_dis;
-                        result.predecessor[dest] = source;
-                        if (iter == g.numNodes - 1)
+                        (*result).dist[dest] = new_dis;
+                        (*result).predecessor[dest] = source;
+                        if (iter == (*g).numNodes - 1)
                         {
 
 #pragma omp critical
                             {
-                                result.negativeCycleNode = source;
-                                result.hasNegativeCycle = true;
+                                (*result).negativeCycleNode = source;
+                                (*result).hasNegativeCycle = true;
                             }
                         }
                     }
@@ -77,26 +89,32 @@ BFOutput bellmanFord(int p, DestGraph g, int startNode)
         }
         if (!has_changed)
         {
-            result.hasNegativeCycle = false;
+            (*result).hasNegativeCycle = false;
             tstop = omp_get_wtime();
-            result.timeInSeconds = tstop - tstart;
+            (*result).timeInSeconds = tstop - tstart;
             return result;
         }
         has_changed = false;
+
+#pragma omp parallel for
+        for (int i = 0; i < (*g).numNodes; i++)
+        {
+            wasUpdatedLastIter[i] = isUpdatedThisIter[i];
+        }
     }
     tstop = omp_get_wtime();
-    result.timeInSeconds = tstop - tstart;
+    (*result).timeInSeconds = tstop - tstart;
     return result;
 }
 
 int main()
 {
-    DestGraph readGraph = readDestGraphFromFile("../../data/no_cycle/graph_no_cycle_5.txt");
-    BFOutput result = bellmanFord(2, readGraph, 0);
-    printf("---------------- %d\n", result.hasNegativeCycle);
+    DestGraph* readGraph = readDestGraphFromFile("../../data/no_cycle/graph_no_cycle_5.txt");
+    BFOutput* result = bellmanFord(2, readGraph, 0);
+    printf("---------------- %d\n", (*result).hasNegativeCycle);
     writeResult(result, "../../results/omp_dest/no_cycle/graph_no_cycle_5.txt", true);
-    DestGraph readGraphNegativeCycle = readDestGraphFromFile("../../data/cycle/graph_cycle_5.txt");
-    BFOutput resultCycle = bellmanFord(2, readGraphNegativeCycle, 0);
+    DestGraph* readGraphNegativeCycle = readDestGraphFromFile("../../data/cycle/graph_cycle_5.txt");
+    BFOutput* resultCycle = bellmanFord(2, readGraphNegativeCycle, 0);
     writeResult(resultCycle, "../../results/omp_dest/cycle/graph_cycle_5.txt", true);
     return 0;
 }

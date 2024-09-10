@@ -3,18 +3,16 @@
 #include "cuda_utils.h"
 
 void copySourceGraphToDevice(SourceGraph *h_graph, SourceGraph **d_graph) {
-    SourceGraph h_tempGraph = *h_graph;  // Temporary host graph
-
     // Step 1: Allocate memory on the device for the SourceGraph structure
     cudaMalloc((void **)d_graph, sizeof(SourceGraph));
 
     // Step 2: Allocate memory for the array of SourceNode structures on the device
     SourceNode *d_nodes;
-    cudaMalloc((void **)&d_nodes, h_tempGraph.numNodes * sizeof(SourceNode));
+    cudaMalloc((void **)&d_nodes, (*h_graph).numNodes * sizeof(SourceNode));
 
     // Step 3: Copy each SourceNode, including its outEdges array
-    for (int i = 0; i < h_tempGraph.numNodes; ++i) {
-        SourceNode h_node = h_tempGraph.nodes[i];  // Current host node
+    for (int i = 0; i < (*h_graph).numNodes; ++i) {
+        SourceNode h_node = (*h_graph).nodes[i];  // Current host node
 
         // Allocate memory on the device for the outEdges array
         SourceEdge *d_outEdges;
@@ -31,9 +29,9 @@ void copySourceGraphToDevice(SourceGraph *h_graph, SourceGraph **d_graph) {
     }
 
     // Step 4: Update the host graph to point to the device nodes
-    h_tempGraph.nodes = d_nodes;
+    (*h_graph).nodes = d_nodes;
 
     // Step 5: Copy the updated graph to the device
-    cudaMemcpy(*d_graph, &h_tempGraph, sizeof(SourceGraph), cudaMemcpyHostToDevice);
+    cudaMemcpy(*d_graph, &(*h_graph), sizeof(SourceGraph), cudaMemcpyHostToDevice);
 }
 // Similar implementation for copyDestGraphToDevice()

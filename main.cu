@@ -4,90 +4,130 @@ int getSmt(int x) { return x + 1; }
 #define INF 1000000
 
 // CUDA kernel to add 30 to each element
-__global__ void addThirty(int *d_arr, int size) {
+__global__ void addThirty(int *neighbouringNodes,
+                          int *neighbouringNodesWeights,
+                          int neighboursCount)
+{
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (idx < size) {
-        d_arr[idx] = 0;
+    if (idx < neighboursCount)
+    {
+        printf("neighbouringNodes[%d] = %d\n", idx,
+               neighbouringNodes[idx]);
+
+        printf("neighbouringNodesWeights[%d] = %d\n", idx,
+               neighbouringNodesWeights[idx]);
     }
 }
-__global__ void relax_initial(int *d_dist, int *d_predecessor, bool *d_wasUpdatedLastIter, bool *d_hasChanged, int n,
-                              int startNode, int maxVal) {
+
+__global__ void relax_initial(int *d_dist, int *d_predecessor,
+                              bool *d_wasUpdatedLastIter, bool *d_hasChanged,
+                              int n, int startNode, int maxVal)
+{
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
     int i = bdim * bid + tid;
     int skip = bdim * gdim;
-    for (int k = i; k < n; k += skip) {
+    for (int k = i; k < n; k += skip)
+    {
         d_predecessor[k] = -1;
         d_hasChanged[k] = false;
 
-        if (k != startNode) {
+        if (k != startNode)
+        {
             d_dist[k] = maxVal;
             d_wasUpdatedLastIter[k] = false;
-        } else {
+        }
+        else
+        {
             d_dist[startNode] = 0;
             d_wasUpdatedLastIter[startNode] = true;
         }
     }
     __syncthreads();
 }
-int main() {
-    int size = 5;
-    int *h_arr = (int *)malloc(size * sizeof(int));
-    int *d_arr;
-    cudaMalloc(&d_arr, size * sizeof(int));
-
-    // Copy host array to device
-    // cudaMemcpy(d_arr, h_arr, size * sizeof(int), cudaMemcpyHostToDevice);
-
-    // Launch kernel to add 30 to each element
-    int threadsPerBlock = 16;
-    int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
-    addThirty<<<blocksPerGrid, threadsPerBlock>>>(d_arr, size);
-
-    // Copy results back to host
-    cudaMemcpy(h_arr, d_arr, size * sizeof(int), cudaMemcpyDeviceToHost);
-
-    // Print results and call getSmt
-    for (int i = 0; i < size; ++i) {
-        printf("Element %d (after init): %d\n", i, h_arr[i]);
+void readSourceGraphFromFileToDevice(const char *filename,
+                                     int **&neighbouringNodes,
+                                     int **&neighbouringNodesWeights,
+                                     int *&n,
+                                     int *&neighboursCount)
+{
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        perror("Failed to open file");
+        exit(EXIT_FAILURE);
     }
+    n = (int *)malloc(sizeof(int));
 
-    // Free device memory
-    cudaFree(d_arr);
-
-    int *h_dist = (int *)malloc(size * sizeof(int));
-    int *d_dist;
-    cudaMalloc(&d_dist, size * sizeof(int));
-
-    int *h_predecessor = (int *)malloc(size * sizeof(int));
-    int *d_predecessor;
-    cudaMalloc(&d_predecessor, size * sizeof(int));
-
-    bool *h_wasUpdatedLastIter = (bool *)malloc(size * sizeof(bool));
-    bool *d_wasUpdatedLastIter;
-    cudaMalloc(&d_wasUpdatedLastIter, size * sizeof(bool));
-
-    bool *h_hasChanged = (bool *)malloc(size * sizeof(bool));
-    bool *d_hasChanged;
-    cudaMalloc(&d_hasChanged, size * sizeof(bool));
-
-    threadsPerBlock = 1024;
-    blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
-    printf("before cuda malloc\n");
-
-    int startNode = 0;
-    relax_initial<<<blocksPerGrid, threadsPerBlock>>>(d_dist, d_predecessor, d_wasUpdatedLastIter, d_hasChanged, size,
-                                                      startNode, INF);
-    cudaDeviceSynchronize();  // wait for kernel to finish
-    cudaMemcpy(h_dist, d_dist, size * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_predecessor, d_predecessor, size * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_wasUpdatedLastIter, d_wasUpdatedLastIter, size * sizeof(bool), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_hasChanged, d_hasChanged, size * sizeof(bool), cudaMemcpyDeviceToHost);
-    for (int i = 0; i < size; ++i) {
-        printf("iteration %d\n", i);
-        printf("h_dist %d,    ", h_dist[i]);
-        printf("h_predecessor %d,      ", h_predecessor[i]);
-        printf("h_wasUpdatedLastIter %d,      ", h_wasUpdatedLastIter[i]);
-        printf("h_hasChanged %d,        \n", h_hasChanged[i]);
+    fscanf(file, "g %d\n", n);
+    printf("n is %d\n", *n);
+    neighbouringNodes = (int **)malloc(*n * sizeof(int *));
+    neighbouringNodesWeights = (int **)malloc(*n * sizeof(int *));
+    neighboursCount = (int *)malloc(*n * sizeof(int));
+    int *indexeForNode = (int *)malloc(*n * sizeof(int));
+    int numEdgesOut = 0;
+    for (int i = 0; i < *n; i++)
+    {
+        int temp;
+        fscanf(file, "n %d %d\n", &temp, &neighboursCount[i]);
+        neighbouringNodes[i] = (int *)malloc(neighboursCount[i] * sizeof(int));
+        neighbouringNodesWeights[i] = (int *)malloc(neighboursCount[i] * sizeof(int));
+        indexeForNode[i] = 0;
+        numEdgesOut = numEdgesOut + neighboursCount[i];
     }
+    printf("Total number of edges = %d\n", numEdgesOut);
+
+    for (int i = 0; i < numEdgesOut; i++)
+    {
+        int source;
+        int dest;
+        int weight;
+        fscanf(file, "e %d %d %d\n", &source, &dest, &weight);
+        neighbouringNodes[source][indexeForNode[source]] = dest;
+        neighbouringNodesWeights[source][indexeForNode[source]] = weight;
+        indexeForNode[source]++;
+    }
+    fclose(file);
+}
+
+int main()
+{
+
+    // Pointer to the graph on the device
+    int **neighbouringNodes;
+    int **neighbouringNodesWeights;
+    int *n;
+    int *neighboursCount;
+    readSourceGraphFromFileToDevice("data/no_cycle/graph_no_cycle_5.txt",
+                                    neighbouringNodes,
+                                    neighbouringNodesWeights,
+                                    n,
+                                    neighboursCount);
+    /*printf("here %d\n", (n));
+    printf("here %d\n", (*n));
+
+    for (int i = 0; i < (*n); ++i)
+    {
+        printf("source %d", i);
+        for (int j = 0; j < neighboursCount[i]; j++)
+        {
+            printf("dest %d\n", neighbouringNodes[i][j]);
+            printf("weight %d\n", neighbouringNodesWeights[i][j]);
+        }
+    }*/
+    int size = *n;
+    int *d_neighbouringNodes = (int *)malloc(size * sizeof(int));
+    int *d_neighbouringNodesWeights = (int *)malloc(size * sizeof(int));
+    cudaMalloc(&d_neighbouringNodes, neighboursCount[0] * sizeof(int));
+    cudaMalloc(&d_neighbouringNodesWeights, neighboursCount[0] * sizeof(int));
+    cudaMemcpy(d_neighbouringNodes, neighbouringNodes[0], neighboursCount[0] * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_neighbouringNodesWeights, neighbouringNodesWeights[0], neighboursCount[0] * sizeof(int), cudaMemcpyHostToDevice);
+
+    int threadsPerBlock = 1024;
+    int blocksPerGrid = (5 + threadsPerBlock - 1) / threadsPerBlock;
+    printf("%d\n", neighboursCount[0]);
+
+    addThirty<<<blocksPerGrid, threadsPerBlock>>>(d_neighbouringNodes, d_neighbouringNodesWeights, neighboursCount[0]);
+    cudaDeviceSynchronize(); // wait for kernel to finish*/
+
     return 0;
 }

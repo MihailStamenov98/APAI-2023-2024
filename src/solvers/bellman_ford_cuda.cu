@@ -14,7 +14,8 @@
 
 #define INF 1000000
 
-typedef struct {
+typedef struct
+{
     bool hasNegativeCycle;
     int negativeCycleNode;
     double timeInSeconds;
@@ -25,27 +26,32 @@ typedef struct {
 
 } BFOutput;
 
-typedef struct {
+typedef struct
+{
     int dest;
     int weight;
 } SourceEdge;
 
-typedef struct {
-    int inNeighbours;  // count of edges
+typedef struct
+{
+    int inNeighbours; // count of edges
     int outNeighbours;
     SourceEdge *outEdges;
 } SourceNode;
 
-typedef struct {
+typedef struct
+{
     int numNodes;
     SourceNode *nodes;
 } SourceGraph;
 
 void readSourceGraphFromFileToDevice(const char *filename, int **neighbouringNodes, int **neighbouringNodesWeights,
-                                     int *n, int *neighboursCount) {
+                                     int *n, int *neighboursCount)
+{
     n = (int *)malloc(sizeof(int));
     FILE *file = fopen(filename, "r");
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("Failed to open file");
         exit(EXIT_FAILURE);
     }
@@ -56,18 +62,21 @@ void readSourceGraphFromFileToDevice(const char *filename, int **neighbouringNod
     neighbouringNodesWeights = (int **)malloc((*n) * sizeof(int *));
     neighboursCount = (int *)malloc((*n) * sizeof(int));
 
-    for (int i = 0; i < (*n); i++) {
+    for (int i = 0; i < (*n); i++)
+    {
         int temp;
         fscanf(file, "n %d %d\n", &temp, &neighboursCount[i]);
         numEdgesOut = numEdgesOut + neighboursCount[i];
     }
     printf("Total number of edges = %d\n", numEdgesOut);
 
-    for (int i = 0; i < (*n); i++) {
+    for (int i = 0; i < (*n); i++)
+    {
         int *tempNeighbours = (int *)malloc(neighboursCount[i] * sizeof(int));
         int *tempWeights = (int *)malloc(neighboursCount[i] * sizeof(int));
 
-        for (int j = 0; j < neighboursCount[i]; j++) {
+        for (int j = 0; j < neighboursCount[i]; j++)
+        {
             int source;
             int dest;
             int weight;
@@ -84,7 +93,8 @@ void readSourceGraphFromFileToDevice(const char *filename, int **neighbouringNod
     fclose(file);
 }
 
-double gettime(void) {
+double gettime(void)
+{
     /*#ifdef _WIN32
         LARGE_INTEGER frequency;
         LARGE_INTEGER start;
@@ -99,40 +109,49 @@ double gettime(void) {
     // #endif
 }
 
-__global__ void relax_initial(int *d_dist/*, int *d_predecessor, bool *d_wasUpdatedLastIter, bool *d_hasChanged, int n,
-                              int startNode*/) {
+__global__ void relax_initial(int *d_dist, int *d_predecessor,
+                              bool *d_wasUpdatedLastIter, bool *d_hasChanged,
+                              int n, int startNode, int maxVal)
+{
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
     int i = bdim * bid + tid;
     int skip = bdim * gdim;
-    printf("we are here");
-    /*for (int k = i; k < n; k += skip) {
+    for (int k = i; k < n; k += skip)
+    {
         d_predecessor[k] = -1;
         d_hasChanged[k] = false;
-        if (k != startNode) {
-            d_dist[k] = INF;
+
+        if (k != startNode)
+        {
+            d_dist[k] = maxVal;
             d_wasUpdatedLastIter[k] = false;
-        } else {
+        }
+        else
+        {
             d_dist[startNode] = 0;
             d_wasUpdatedLastIter[startNode] = true;
         }
     }
-    __syncthreads();*/
+    __syncthreads();
 }
-
-__global__ void copyHasChanged(bool *wasUpdatedLastIter, bool *hasChanged, int n) {
+__global__ void copyHasChanged(bool *wasUpdatedLastIter, bool *hasChanged, int n)
+{
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
     int i = bdim * bid + tid;
     int skip = bdim * gdim;
 
-    for (int j = i; j < n; j += skip) {
+    for (int j = i; j < n; j += skip)
+    {
         wasUpdatedLastIter[j] = hasChanged[j];
         wasUpdatedLastIter[j] = false;
     }
     __syncthreads();
 }
 
-__global__ void bellmanFordIteration(int* weights, int* neighbours, int neighboursCount, int n/*, int *predecessor, int *dist, bool *wasUpdatedLastIter,
-                                     bool *hasChanged, int source */) {
+__global__ void bellmanFordIteration(int *weights, int *neighbours, int neighboursCount, int n /*, int *predecessor, int *dist, bool *wasUpdatedLastIter,
+                                      bool *hasChanged, int source */
+)
+{
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
     int i = bdim * bid + tid;
     int skip = bdim * gdim;
@@ -161,7 +180,8 @@ __global__ void bellmanFordIteration(int* weights, int* neighbours, int neighbou
  * @param *dist distance array
  * @param *has_negative_cycle a bool variable to recode if there are negative cycles
  */
-BFOutput *bellmanFordCuda(const char *filename, int startNode) {
+BFOutput *bellmanFordCuda(const char *filename, int startNode)
+{
     // Pointer to the graph on the device
     int **neighbouringNodes;
     int **neighbouringNodesWeights;
@@ -169,8 +189,6 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode) {
     int *neighboursCount;
     readSourceGraphFromFileToDevice(filename, neighbouringNodes, neighbouringNodesWeights, n, neighboursCount);
     int size = *n;
-    printf("after read\n");
-
     int *h_dist = (int *)malloc(size * sizeof(int));
     int *d_dist;
     cudaMalloc(&d_dist, size * sizeof(int));
@@ -197,8 +215,9 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode) {
     double tstart, tend;
     tstart = gettime();
     printf("before relax_initial\n");
-    relax_initial<<<gdim, bdim>>>(d_dist /*, d_predecessor, d_wasUpdatedLastIter, d_hasChanged, (*n), startNode*/);
-    cudaDeviceSynchronize();  // wait for kernel to finish
+    relax_initial<<<gdim, bdim>>>(d_dist, d_predecessor, d_wasUpdatedLastIter, d_hasChanged, size,
+                                  startNode, INF);
+    cudaDeviceSynchronize(); // wait for kernel to finish
 
     /*for (int iter = 0; iter < (*n); iter++) {
         for (int source = 0; source < (*n); ++source) {
@@ -226,28 +245,42 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode) {
     cudaMemcpy((*result).predecessor, d_predecessor, n * sizeof(int), cudaMemcpyDeviceToHost);
     (*result).hasNegativeCycle = false;
     (*result).timeInSeconds = tend - tstart;*/
+    cudaMemcpy(h_dist, d_dist, size * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_predecessor, d_predecessor, size * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_wasUpdatedLastIter, d_wasUpdatedLastIter, size * sizeof(bool), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_hasChanged, d_hasChanged, size * sizeof(bool), cudaMemcpyDeviceToHost);
     return nullptr;
 }
 
-void writeResult(BFOutput *out, const char *filename, bool writeAll) {
+void writeResult(BFOutput *out, const char *filename, bool writeAll)
+{
     FILE *file = fopen(filename, "w");
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("Failed to open file");
         exit(EXIT_FAILURE);
     }
-    if ((*out).hasNegativeCycle) {
+    if ((*out).hasNegativeCycle)
+    {
         fprintf(file, "There is negative cycle in the graph\n");
         fprintf(file, "From this node one can bactrack to find the cycle = %d\n", (*out).negativeCycleNode);
-    } else {
+    }
+    else
+    {
         fprintf(file, "There is NOT negative cycle in the graph\n");
     }
     fprintf(file, "timeInSeconds = %lf\n", (*out).timeInSeconds);
     fprintf(file, "numberNodes = %d\n", (*out).numberNodes);
-    if (writeAll) {
-        for (int i = 0; i < (*out).numberNodes; i++) {
-            if ((*out).hasNegativeCycle) {
+    if (writeAll)
+    {
+        for (int i = 0; i < (*out).numberNodes; i++)
+        {
+            if ((*out).hasNegativeCycle)
+            {
                 fprintf(file, "Predcessor of node %d is node %d\n", i, (*out).predecessor[i]);
-            } else {
+            }
+            else
+            {
                 fprintf(file, "Distance from node %d to node = %d is %d\n", (*out).startNode, i, (*out).dist[i]);
             }
         }
@@ -255,7 +288,8 @@ void writeResult(BFOutput *out, const char *filename, bool writeAll) {
     fclose(file);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BFOutput *result = bellmanFordCuda("../../data/no_cycle/graph_no_cycle_5.txt", 0);
     // printf("---------------- %d\n", (*result).hasNegativeCycle);
     /*writeResult(result, "../../results/omp_source/no_cycle/graph_no_cycle_5.txt", true);

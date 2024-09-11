@@ -101,8 +101,7 @@ double gettime(void)
     // #endif
 }
 
-__global__ void relax_initial(int *d_dist, int *d_predecessor,
-                              bool *d_wasUpdatedLastIter, bool *d_hasChanged,
+__global__ void relax_initial(int *d_dist, int *d_predecessor, bool *d_hasChanged,
                               int n, int startNode, int maxVal)
 {
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
@@ -116,17 +115,15 @@ __global__ void relax_initial(int *d_dist, int *d_predecessor,
         if (k != startNode)
         {
             d_dist[k] = maxVal;
-            d_wasUpdatedLastIter[k] = false;
         }
         else
         {
             d_dist[startNode] = 0;
-            d_wasUpdatedLastIter[startNode] = true;
         }
     }
     __syncthreads();
 }
-__global__ void copyHasChanged(bool *wasUpdatedLastIter, bool *hasChanged,
+__global__ void copyHasChanged(bool *hasChanged,
                                int n)
 {
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
@@ -135,15 +132,14 @@ __global__ void copyHasChanged(bool *wasUpdatedLastIter, bool *hasChanged,
 
     for (int j = i; j < n; j += skip)
     {
-        wasUpdatedLastIter[j] = hasChanged[j];
-        wasUpdatedLastIter[j] = false;
+        hasChanged[j] = false;
     }
     __syncthreads();
 }
 
 __global__ void bellmanFordIteration(int *weights, int *neighbours,
                                      int neighboursCount, int *predecessor,
-                                     int *dist, bool wasUpdatedLastIter,
+                                     int *dist,
                                      bool *hasChanged, int source)
 {
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
@@ -151,17 +147,15 @@ __global__ void bellmanFordIteration(int *weights, int *neighbours,
     int skip = bdim * gdim;
     for (int edgeIndex = i; edgeIndex < neighboursCount; edgeIndex += skip)
     {
-        if (wasUpdatedLastIter)
+
+        int destination = neighbours[edgeIndex];
+        int weight = weights[edgeIndex];
+        int new_dist = dist[source] + weight;
+        if (new_dist < dist[destination])
         {
-            int destination = neighbours[edgeIndex];
-            int weight = weights[edgeIndex];
-            int new_dist = dist[source] + weight;
-            if (new_dist < dist[destination])
-            {
-                hasChanged[destination] = true;
-                dist[destination] = new_dist;
-                predecessor[destination] = source;
-            }
+            hasChanged[destination] = true;
+            dist[destination] = new_dist;
+            predecessor[destination] = source;
         }
     }
     __syncthreads();
@@ -197,9 +191,7 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
     int *d_predecessor;
     cudaMalloc(&d_predecessor, size * sizeof(int));
 
-    bool *h_wasUpdatedLastIter = (bool *)malloc(size * sizeof(bool));
-    bool *d_wasUpdatedLastIter;
-    cudaMalloc(&d_wasUpdatedLastIter, size * sizeof(bool));
+    bool *wasUpdatedLastIter = (bool *)malloc(size * sizeof(bool));
 
     bool *h_hasChanged = (bool *)malloc(size * sizeof(bool));
     bool *d_hasChanged;
@@ -222,38 +214,49 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
     double tstart, tend;
     tstart = gettime();
     printf("before relax_initial\n");
-    relax_initial<<<gdim, bdim>>>(d_dist, d_predecessor, d_wasUpdatedLastIter,
+    relax_initial<<<gdim, bdim>>>(d_dist, d_predecessor,
                                   d_hasChanged, size, startNode, INF);
+    cudaMemcpy(wasUpdatedLastIter, d_hasChanged, size * sizeof(bool),
+               cudaMemcpyDeviceToHost);
+    wasUpdatedLastIter[startNode] = true;
+    printf("\n");
     cudaDeviceSynchronize(); // wait for kernel to finish
 
-    printf("%d", size);
+    printf("%d\n", size);
     for (int iter = 0; iter < size; iter++)
     {
+        printf("iteration is: %d\n", iter);
+
         for (int source = 0; source < (*n); ++source)
         {
-            printf("source is: %d\n", source);
-            bellmanFordIteration<<<gdim, bdim>>>(d_neighbouringNodesWeights[source],
-                                                 d_neighbouringNodes[source],
-                                                 neighboursCount[source],
-                                                 d_predecessor,
-                                                 d_dist,
-                                                 d_wasUpdatedLastIter,
-                                                 d_hasChanged,
-                                                 source);
+            if (wasUpdatedLastIter[source])
+            {
+                printf("source is: %d\n", source);
+
+                bellmanFordIteration<<<gdim, bdim>>>(d_neighbouringNodesWeights[source],
+                                                     d_neighbouringNodes[source],
+                                                     neighboursCount[source],
+                                                     d_predecessor,
+                                                     d_dist,
+                                                     d_hasChanged,
+                                                     source);
+            }
             cudaDeviceSynchronize();
             if (iter == size - 1 && d_hasChanged)
             {
-                printf("has neg cycle");
+                printf("has neg cycle\n");
                 tend = gettime();
                 cudaMemcpy((*result).predecessor, d_predecessor, size * sizeof(int),
                            cudaMemcpyDeviceToHost);
                 (*result).negativeCycleNode = source;
                 (*result).hasNegativeCycle = true;
                 (*result).timeInSeconds = tend - tstart;
-                return nullptr;
+                return result;
             }
         }
-        copyHasChanged<<<gdim, bdim>>>(d_wasUpdatedLastIter, d_hasChanged, size);
+        cudaMemcpy(wasUpdatedLastIter, d_hasChanged, size * sizeof(bool),
+                   cudaMemcpyDeviceToHost);
+        copyHasChanged<<<gdim, bdim>>>(d_hasChanged, size);
         cudaDeviceSynchronize();
     }
 
@@ -269,7 +272,8 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
                cudaMemcpyDeviceToHost);
     cudaMemcpy(h_hasChanged, d_hasChanged, size * sizeof(bool),
                cudaMemcpyDeviceToHost);*/
-    return nullptr;
+
+    return result;
 }
 
 void writeResult(BFOutput *out, const char *filename, bool writeAll)
@@ -315,10 +319,10 @@ int main(int argc, char **argv)
 {
     BFOutput *result =
         bellmanFordCuda("../../data/no_cycle/graph_no_cycle_5.txt", 0);
-    printf("bllman ford finished");
-    // printf("---------------- %d\n", (*result).hasNegativeCycle);
-    writeResult(result, "../../results/omp_source/no_cycle/graph_no_cycle_5.txt",
-                true);
+    printf("bllman ford finished\n");
+    printf("---------------- %d\n", (*result).hasNegativeCycle);
+    //  writeResult(result, "../../results/omp_source/no_cycle/graph_no_cycle_5.txt",
+    //  true);
 
     /*SourceGraph *readGraphNegativeCycle =
       readSourceGraphFromFile("../../data/cycle/graph_cycle_5.txt");

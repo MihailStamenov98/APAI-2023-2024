@@ -45,11 +45,13 @@ __global__ void relax_initial(int *d_dist, int *d_predecessor,
     __syncthreads();
 }
 void readSourceGraphFromFileToDevice(const char *filename,
-                                     int **&neighbouringNodes,
-                                     int **&neighbouringNodesWeights,
+                                     int **&d_neighbouringNodes,
+                                     int **&d_neighbouringNodesWeights,
                                      int *&n,
                                      int *&neighboursCount)
 {
+    int **neighbouringNodes;
+    int **neighbouringNodesWeights;
     FILE *file = fopen(filename, "r");
     if (file == NULL)
     {
@@ -62,6 +64,8 @@ void readSourceGraphFromFileToDevice(const char *filename,
     printf("n is %d\n", *n);
     neighbouringNodes = (int **)malloc(*n * sizeof(int *));
     neighbouringNodesWeights = (int **)malloc(*n * sizeof(int *));
+    d_neighbouringNodes = (int **)malloc(*n * sizeof(int *));
+    d_neighbouringNodesWeights = (int **)malloc(*n * sizeof(int *));
     neighboursCount = (int *)malloc(*n * sizeof(int));
     int *indexeForNode = (int *)malloc(*n * sizeof(int));
     int numEdgesOut = 0;
@@ -69,6 +73,8 @@ void readSourceGraphFromFileToDevice(const char *filename,
     {
         int temp;
         fscanf(file, "n %d %d\n", &temp, &neighboursCount[i]);
+        cudaMalloc(&d_neighbouringNodes[i], neighboursCount[i] * sizeof(int));
+        cudaMalloc(&d_neighbouringNodesWeights[i], neighboursCount[i] * sizeof(int));
         neighbouringNodes[i] = (int *)malloc(neighboursCount[i] * sizeof(int));
         neighbouringNodesWeights[i] = (int *)malloc(neighboursCount[i] * sizeof(int));
         indexeForNode[i] = 0;
@@ -86,6 +92,12 @@ void readSourceGraphFromFileToDevice(const char *filename,
         neighbouringNodesWeights[source][indexeForNode[source]] = weight;
         indexeForNode[source]++;
     }
+    for (int i = 0; i < *n; i++)
+    {
+        cudaMemcpy(d_neighbouringNodes[i], neighbouringNodes[i], neighboursCount[i] * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_neighbouringNodesWeights[i], neighbouringNodesWeights[i], neighboursCount[i] * sizeof(int), cudaMemcpyHostToDevice);
+    }
+
     fclose(file);
 }
 
@@ -93,13 +105,13 @@ int main()
 {
 
     // Pointer to the graph on the device
-    int **neighbouringNodes;
-    int **neighbouringNodesWeights;
+    int **d_neighbouringNodes;
+    int **d_neighbouringNodesWeights;
     int *n;
     int *neighboursCount;
     readSourceGraphFromFileToDevice("data/no_cycle/graph_no_cycle_5.txt",
-                                    neighbouringNodes,
-                                    neighbouringNodesWeights,
+                                    d_neighbouringNodes,
+                                    d_neighbouringNodesWeights,
                                     n,
                                     neighboursCount);
     /*printf("here %d\n", (n));
@@ -115,19 +127,21 @@ int main()
         }
     }*/
     int size = *n;
-    int *d_neighbouringNodes = (int *)malloc(size * sizeof(int));
+    /*int *d_neighbouringNodes = (int *)malloc(size * sizeof(int));
     int *d_neighbouringNodesWeights = (int *)malloc(size * sizeof(int));
     cudaMalloc(&d_neighbouringNodes, neighboursCount[0] * sizeof(int));
     cudaMalloc(&d_neighbouringNodesWeights, neighboursCount[0] * sizeof(int));
     cudaMemcpy(d_neighbouringNodes, neighbouringNodes[0], neighboursCount[0] * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_neighbouringNodesWeights, neighbouringNodesWeights[0], neighboursCount[0] * sizeof(int), cudaMemcpyHostToDevice);
-
+*/
     int threadsPerBlock = 1024;
     int blocksPerGrid = (5 + threadsPerBlock - 1) / threadsPerBlock;
     printf("%d\n", neighboursCount[0]);
-
-    addThirty<<<blocksPerGrid, threadsPerBlock>>>(d_neighbouringNodes, d_neighbouringNodesWeights, neighboursCount[0]);
-    cudaDeviceSynchronize(); // wait for kernel to finish*/
+    for (int i = 0; i < size; ++i)
+    {
+        addThirty<<<blocksPerGrid, threadsPerBlock>>>(d_neighbouringNodes[i], d_neighbouringNodesWeights[i], neighboursCount[i]);
+        cudaDeviceSynchronize(); // wait for kernel to finish*/
+    }
 
     return 0;
 }

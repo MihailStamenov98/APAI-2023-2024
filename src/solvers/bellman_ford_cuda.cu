@@ -5,26 +5,84 @@
  * Run: ./cuda_bellman_ford <input file> <number of blocks per grid> <number of threads per block>, you will find the
  * output file 'output.txt'
  * */
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-#include "../generate_graphs/graph_generator.h"
-#include "../generate_graphs/graph_structures.h"
-#include "../generate_graphs/output_graphs.h"
-#include "cuda_utils.h"
-#include "output_structure.h"
-
 #define INF 1000000
 
-#include <stdio.h>
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <time.h>
-#endif
+typedef struct {
+    bool hasNegativeCycle;
+    int negativeCycleNode;
+    double timeInSeconds;
+    int numberNodes;
+    int startNode;
+    int *predecessor;
+    int *dist;
+
+} BFOutput;
+
+typedef struct {
+    int dest;
+    int weight;
+} SourceEdge;
+
+typedef struct {
+    int inNeighbours;  // count of edges
+    int outNeighbours;
+    SourceEdge *outEdges;
+} SourceNode;
+
+typedef struct {
+    int numNodes;
+    SourceNode *nodes;
+} SourceGraph;
+
+void readSourceGraphFromFileToDevice(const char *filename, int **neighbouringNodes, int **neighbouringNodesWeights,
+                                     int *n, int *neighboursCount) {
+    n = (int *)malloc(sizeof(int));
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Failed to open file");
+        exit(EXIT_FAILURE);
+    }
+    int numEdgesOut = 0;
+    fscanf(file, "g %d\n", n);
+    printf("Number of Nodes = %d\n", (*n));
+    neighbouringNodes = (int **)malloc((*n) * sizeof(int *));
+    neighbouringNodesWeights = (int **)malloc((*n) * sizeof(int *));
+    neighboursCount = (int *)malloc((*n) * sizeof(int));
+
+    for (int i = 0; i < (*n); i++) {
+        int temp;
+        fscanf(file, "n %d %d\n", &temp, &neighboursCount[i]);
+        numEdgesOut = numEdgesOut + neighboursCount[i];
+    }
+    printf("Total number of edges = %d\n", numEdgesOut);
+
+    for (int i = 0; i < (*n); i++) {
+        int *tempNeighbours = (int *)malloc(neighboursCount[i] * sizeof(int));
+        int *tempWeights = (int *)malloc(neighboursCount[i] * sizeof(int));
+
+        for (int j = 0; j < neighboursCount[i]; j++) {
+            int source;
+            int dest;
+            int weight;
+            fscanf(file, "e %d %d %d\n", &source, &dest, &weight);
+            tempNeighbours[j] = dest;
+            tempWeights[j] = weight;
+        }
+        cudaMalloc(&neighbouringNodes[i], neighboursCount[i] * sizeof(int));
+        cudaMemcpy(neighbouringNodes[i], tempNeighbours, neighboursCount[i] * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMalloc(&neighbouringNodesWeights[i], neighboursCount[i] * sizeof(int));
+        cudaMemcpy(neighbouringNodesWeights[i], tempWeights, neighboursCount[i] * sizeof(int), cudaMemcpyHostToDevice);
+    }
+
+    fclose(file);
+}
 
 double gettime(void) {
     /*#ifdef _WIN32
@@ -38,20 +96,27 @@ double gettime(void) {
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (ts.tv_sec + (double)ts.tv_nsec / 1e9);*/
     return 5.0;
-    //#endif
+    // #endif
 }
 
-__global__ void relax_initial(int *d_dist, int *d_predecessor, bool *d_wasUpdatedLastIter, bool *d_hasChanged, int n) {
+__global__ void relax_initial(int *d_dist/*, int *d_predecessor, bool *d_wasUpdatedLastIter, bool *d_hasChanged, int n,
+                              int startNode*/) {
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
     int i = bdim * bid + tid;
     int skip = bdim * gdim;
-    for (int k = i; k < n; k += skip) {
-        d_dist[k] = INF;
+    printf("we are here");
+    /*for (int k = i; k < n; k += skip) {
         d_predecessor[k] = -1;
-        d_wasUpdatedLastIter[k] = false;
         d_hasChanged[k] = false;
+        if (k != startNode) {
+            d_dist[k] = INF;
+            d_wasUpdatedLastIter[k] = false;
+        } else {
+            d_dist[startNode] = 0;
+            d_wasUpdatedLastIter[startNode] = true;
+        }
     }
-    __syncthreads();
+    __syncthreads();*/
 }
 
 __global__ void copyHasChanged(bool *wasUpdatedLastIter, bool *hasChanged, int n) {
@@ -66,13 +131,13 @@ __global__ void copyHasChanged(bool *wasUpdatedLastIter, bool *hasChanged, int n
     __syncthreads();
 }
 
-__global__ void bellmanFordIteration(SourceEdge *outEdges, int outNeighbours, int *predecessor, int *dist,
-                                     bool *wasUpdatedLastIter, bool *hasChanged, int source) {
+__global__ void bellmanFordIteration(int* weights, int* neighbours, int neighboursCount, int n/*, int *predecessor, int *dist, bool *wasUpdatedLastIter,
+                                     bool *hasChanged, int source */) {
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
     int i = bdim * bid + tid;
     int skip = bdim * gdim;
-
-    for (int edgeIndex = i; edgeIndex < outNeighbours; edgeIndex += skip) {
+    printf("%d\n", weights[i]);
+    /*for (int edgeIndex = i; edgeIndex < node.outNeighbours; edgeIndex += skip) {
         if (*wasUpdatedLastIter) {
             int destination = outEdges[edgeIndex].dest;
             int weight = outEdges[edgeIndex].weight;
@@ -84,7 +149,7 @@ __global__ void bellmanFordIteration(SourceEdge *outEdges, int outNeighbours, in
             }
         }
     }
-    __syncthreads();
+    __syncthreads();*/
 }
 
 /**
@@ -96,46 +161,54 @@ __global__ void bellmanFordIteration(SourceEdge *outEdges, int outNeighbours, in
  * @param *dist distance array
  * @param *has_negative_cycle a bool variable to recode if there are negative cycles
  */
-BFOutput *bellmanFordCuda(int blocksPerGrid, int threadsPerBlock, SourceGraph *g, int startNode) {
+BFOutput *bellmanFordCuda(const char *filename, int startNode) {
     // Pointer to the graph on the device
-    BFOutput *result;
-    result = (BFOutput *)malloc(sizeof(BFOutput));
-    (*result).startNode = startNode;
-    (*result).predecessor = (int *)malloc((*g).numNodes * sizeof(int));
-    (*result).dist = (int *)malloc((*g).numNodes * sizeof(int));
-    (*result).negativeCycleNode = -1;
-    (*result).numberNodes = (*g).numNodes;
-    SourceGraph *d_graph;
+    int **neighbouringNodes;
+    int **neighbouringNodesWeights;
+    int *n;
+    int *neighboursCount;
+    readSourceGraphFromFileToDevice(filename, neighbouringNodes, neighbouringNodesWeights, n, neighboursCount);
+    int size = *n;
+    printf("after read\n");
+
+    int *h_dist = (int *)malloc(size * sizeof(int));
     int *d_dist;
+    cudaMalloc(&d_dist, size * sizeof(int));
+
+    int *h_predecessor = (int *)malloc(size * sizeof(int));
     int *d_predecessor;
-    bool *d_wasUpdatedLastIter, *d_hasChanged;
-    int n = (*g).numNodes;
-    cudaMalloc(&d_dist, n * sizeof(int));
-    cudaMalloc(&d_predecessor, n * sizeof(int));
-    cudaMalloc(&d_wasUpdatedLastIter, n * sizeof(bool));
-    cudaMalloc(&d_hasChanged, n * sizeof(bool));
+    cudaMalloc(&d_predecessor, size * sizeof(int));
+
+    bool *h_wasUpdatedLastIter = (bool *)malloc(size * sizeof(bool));
+    bool *d_wasUpdatedLastIter;
+    cudaMalloc(&d_wasUpdatedLastIter, size * sizeof(bool));
+
+    bool *h_hasChanged = (bool *)malloc(size * sizeof(bool));
+    bool *d_hasChanged;
+    cudaMalloc(&d_hasChanged, size * sizeof(bool));
+
+    int threadsPerBlock = 1024;
+    int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
     // Call the function to copy the SourceGraph to the GPU
-    copySourceGraphToDevice(g, &d_graph);
+    printf("before dim3\n");
 
     dim3 gdim(blocksPerGrid);
     dim3 bdim(threadsPerBlock);
     double tstart, tend;
     tstart = gettime();
+    printf("before relax_initial\n");
+    relax_initial<<<gdim, bdim>>>(d_dist /*, d_predecessor, d_wasUpdatedLastIter, d_hasChanged, (*n), startNode*/);
+    cudaDeviceSynchronize();  // wait for kernel to finish
 
-    relax_initial<<<gdim, bdim>>>(d_dist, d_predecessor, d_wasUpdatedLastIter, d_hasChanged, n);
-
-    cudaDeviceSynchronize(); /* wait for kernel to finish */
-
-    d_dist[startNode] = 0;
-    d_wasUpdatedLastIter[startNode] = true;
-
-    for (int iter = 0; iter < n; iter++) {
-        for (int source = 0; source < n; ++source) {
-            bellmanFordIteration<<<gdim, bdim>>>((*d_graph).nodes[source].outEdges,
-                                                 (*d_graph).nodes[source].outNeighbours, d_predecessor, d_dist,
-                                                 d_wasUpdatedLastIter, d_hasChanged, source);
+    /*for (int iter = 0; iter < (*n); iter++) {
+        for (int source = 0; source < (*n); ++source) {
+            printf("before curnel\n");
+            bellmanFordIteration<<<gdim, bdim>>>(neighbouringNodesWeights[iter], neighbouringNodes[iter],
+    neighboursCount[iter], (*n),
+                                                          (*d_graph).nodes[source].outNeighbours, d_predecessor, d_dist,
+                                                          d_wasUpdatedLastIter, d_hasChanged, source);
             cudaDeviceSynchronize();
-            if (iter == n - 1 && d_hasChanged) {
+            /*if (iter == n - 1 && d_hasChanged) {
                 tend = gettime();
                 cudaMemcpy((*result).predecessor, d_predecessor, n * sizeof(int), cudaMemcpyDeviceToHost);
                 (*result).negativeCycleNode = source;
@@ -144,29 +217,51 @@ BFOutput *bellmanFordCuda(int blocksPerGrid, int threadsPerBlock, SourceGraph *g
                 return result;
             }
         }
-        copyHasChanged<<<gdim, bdim>>>(d_wasUpdatedLastIter, d_hasChanged, n);
-        cudaDeviceSynchronize();
+        // copyHasChanged<<<gdim, bdim>>>(d_wasUpdatedLastIter, d_hasChanged, n);
+        // cudaDeviceSynchronize();
     }
 
-    tend = gettime();
+    /*tend = gettime();
     cudaMemcpy((*result).dist, d_dist, n * sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy((*result).predecessor, d_predecessor, n * sizeof(int), cudaMemcpyDeviceToHost);
     (*result).hasNegativeCycle = false;
-    (*result).timeInSeconds = tend - tstart;
-    return result;
+    (*result).timeInSeconds = tend - tstart;*/
+    return nullptr;
+}
+
+void writeResult(BFOutput *out, const char *filename, bool writeAll) {
+    FILE *file = fopen(filename, "w");
+    if (file == NULL) {
+        perror("Failed to open file");
+        exit(EXIT_FAILURE);
+    }
+    if ((*out).hasNegativeCycle) {
+        fprintf(file, "There is negative cycle in the graph\n");
+        fprintf(file, "From this node one can bactrack to find the cycle = %d\n", (*out).negativeCycleNode);
+    } else {
+        fprintf(file, "There is NOT negative cycle in the graph\n");
+    }
+    fprintf(file, "timeInSeconds = %lf\n", (*out).timeInSeconds);
+    fprintf(file, "numberNodes = %d\n", (*out).numberNodes);
+    if (writeAll) {
+        for (int i = 0; i < (*out).numberNodes; i++) {
+            if ((*out).hasNegativeCycle) {
+                fprintf(file, "Predcessor of node %d is node %d\n", i, (*out).predecessor[i]);
+            } else {
+                fprintf(file, "Distance from node %d to node = %d is %d\n", (*out).startNode, i, (*out).dist[i]);
+            }
+        }
+    }
+    fclose(file);
 }
 
 int main(int argc, char **argv) {
-    int threadsPerBlock = 1024;
-    SourceGraph *readGraph = readSourceGraphFromFile("../../data/no_cycle/graph_no_cycle_5.txt");
-    int blocksPerGrid = ((*readGraph).numNodes + 1024) / 1024;
-
-    BFOutput *result = bellmanFordCuda(blocksPerGrid, threadsPerBlock, readGraph, 0);
-    printf("---------------- %d\n", (*result).hasNegativeCycle);
-    writeResult(result, "../../results/omp_source/no_cycle/graph_no_cycle_5.txt", true);
+    BFOutput *result = bellmanFordCuda("../../data/no_cycle/graph_no_cycle_5.txt", 0);
+    // printf("---------------- %d\n", (*result).hasNegativeCycle);
+    /*writeResult(result, "../../results/omp_source/no_cycle/graph_no_cycle_5.txt", true);
 
     SourceGraph *readGraphNegativeCycle = readSourceGraphFromFile("../../data/cycle/graph_cycle_5.txt");
     BFOutput *resultCycle = bellmanFordCuda(blocksPerGrid, threadsPerBlock, readGraphNegativeCycle, 0);
-    writeResult(resultCycle, "../../results/omp_source/cycle/graph_cycle_5.txt", true);
+    writeResult(resultCycle, "../../results/omp_source/cycle/graph_cycle_5.txt", true);*/
     return 0;
 }

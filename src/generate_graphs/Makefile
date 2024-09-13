@@ -8,7 +8,8 @@ CFLAGS = -Wall -Wextra
 OBJDIR = obj
 
 # Source files
-SRC = compare_graphs.c \
+SRC = graph_structures.c \
+      compare_graphs.c \
       output_graphs.c \
       read_graphs.c \
       graph_generator.c \

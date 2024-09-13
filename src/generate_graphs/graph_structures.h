@@ -2,6 +2,7 @@
 
 #ifndef GRAPH_STRUCTURES_H
 #define GRAPH_STRUCTURES_H
+#include <stdlib.h>
 
 typedef struct
 {
@@ -40,5 +41,6 @@ typedef struct
     int numNodes;
     SourceNode *nodes;
 } SourceGraph;
-
+void freeDestGraph(DestGraph *graph);
+void freeSourceGraph(SourceGraph *graph);
 #endif // GRAPH_STRUCTURES_H

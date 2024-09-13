@@ -67,24 +67,3 @@ DestGraph* createGraphWithNegativeCycle(int numNodes, int numNeighbours)
 
     return g;
 }
-
-void freeDestGraph(DestGraph* g)
-{
-    for (int i = 0; i < (*g).numNodes; ++i)
-    {
-        free((*g).nodes[i].inEdges);
-    }
-
-    free((*g).nodes);
-    free(g);
-}
-void freeSourceGraph(SourceGraph* g)
-{
-    for (int i = 0; i < (*g).numNodes; ++i)
-    {
-        free((*g).nodes[i].outEdges);
-    }
-
-    free((*g).nodes);
-    free(g);
-}

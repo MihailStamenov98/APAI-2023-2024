@@ -22,10 +22,4 @@ DestGraph* createGraphNoNegativeCycle(int numNodes, int numNeighbours);
 // Function to create a graph that contains a negative cycle
 DestGraph* createGraphWithNegativeCycle(int numNodes, int numNeighbours);
 
-// Function to free the memory allocated for a DestGraph
-void freeDestGraph(DestGraph* g);
-
-// Function to free the memory allocated for a SourceGraph
-void freeSourceGraph(SourceGraph* g);
-
 #endif // GRAPH_OPERATIONS_H

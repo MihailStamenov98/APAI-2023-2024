@@ -125,5 +125,9 @@ int main()
     SourceGraph* readGraphNegativeCycle = readSourceGraphFromFile("../../data/graph_cycle_5.txt");
     BFOutput* resultCycle = bellmanFordSource(2, readGraphNegativeCycle, 0);
     writeResult(resultCycle, "../../results/omp_source/graph_cycle_5.txt", true);
+    freeBFOutput(result);
+    freeBFOutput(resultCycle);
+    freeSourceGraph(readGraph);
+    freeSourceGraph(readGraphNegativeCycle);
     return 0;
 }

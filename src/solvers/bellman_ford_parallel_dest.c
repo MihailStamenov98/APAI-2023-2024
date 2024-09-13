@@ -116,5 +116,9 @@ int main()
     DestGraph* readGraphNegativeCycle = readDestGraphFromFile("../../data/graph_cycle_5.txt");
     BFOutput* resultCycle = bellmanFord(2, readGraphNegativeCycle, 0);
     writeResult(resultCycle, "../../results/omp_dest/graph_cycle_5.txt", true);
+    freeBFOutput(result);
+    freeBFOutput(resultCycle);
+    freeDestGraph(readGraph);
+    freeDestGraph(readGraphNegativeCycle);
     return 0;
 }

@@ -18,5 +18,6 @@ typedef struct
 
 void writeResult(BFOutput* out, const char *filename, bool writeAll);
 void printResult(BFOutput* out, bool writeAll);
+void freeBFOutput(BFOutput *output);
 
 #endif

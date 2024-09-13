@@ -37,6 +37,23 @@ void writeResult(BFOutput* out, const char *filename, bool writeAll)
     fclose(file);
 }
 
+
+void freeBFOutput(BFOutput *output)
+{
+    if (output != NULL)
+    {
+        if (output->predecessor != NULL)
+        {
+            free(output->predecessor);
+        }
+        if (output->dist != NULL)
+        {
+            free(output->dist);
+        }
+        free(output);
+    }
+}
+
 void printResult(BFOutput* out, bool writeAll)
 {
     if ((*out).hasNegativeCycle)

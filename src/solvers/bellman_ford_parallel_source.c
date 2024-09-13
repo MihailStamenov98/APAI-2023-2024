@@ -117,13 +117,13 @@ BFOutput* bellmanFordSource(int p, SourceGraph* g, int startNode)
 
 int main()
 {
-    SourceGraph* readGraph = readSourceGraphFromFile("../../data/no_cycle/graph_no_cycle_5.txt");
+    SourceGraph* readGraph = readSourceGraphFromFile("../../data/graph_no_cycle_5.txt");
     BFOutput* result = bellmanFordSource(2, readGraph, 0);
     printf("---------------- %d\n", (*result).hasNegativeCycle);
-    writeResult(result, "../../results/omp_source/no_cycle/graph_no_cycle_5.txt", true);
+    writeResult(result, "../../results/omp_source/graph_no_cycle_5.txt", true);
 
-    SourceGraph* readGraphNegativeCycle = readSourceGraphFromFile("../../data/cycle/graph_cycle_5.txt");
+    SourceGraph* readGraphNegativeCycle = readSourceGraphFromFile("../../data/graph_cycle_5.txt");
     BFOutput* resultCycle = bellmanFordSource(2, readGraphNegativeCycle, 0);
-    writeResult(resultCycle, "../../results/omp_source/cycle/graph_cycle_5.txt", true);
+    writeResult(resultCycle, "../../results/omp_source/graph_cycle_5.txt", true);
     return 0;
 }

@@ -101,8 +101,9 @@ double gettime(void)
     // #endif
 }
 
-__global__ void relax_initial(int *d_dist, int *d_predecessor, bool *d_hasChanged,
-                              int n, int startNode, int maxVal)
+__global__ void relax_initial(int *d_dist, int *d_predecessor,
+                              bool *d_hasChanged, int n, int startNode,
+                              int maxVal)
 {
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
     int i = bdim * bid + tid;
@@ -123,8 +124,7 @@ __global__ void relax_initial(int *d_dist, int *d_predecessor, bool *d_hasChange
     }
     __syncthreads();
 }
-__global__ void copyHasChanged(bool *hasChanged,
-                               int n)
+__global__ void copyHasChanged(bool *hasChanged, int n)
 {
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
     int i = bdim * bid + tid;
@@ -139,8 +139,7 @@ __global__ void copyHasChanged(bool *hasChanged,
 
 __global__ void bellmanFordIteration(int *weights, int *neighbours,
                                      int neighboursCount, int *predecessor,
-                                     int *dist,
-                                     bool *hasChanged, int source)
+                                     int *dist, bool *hasChanged, int source)
 {
     int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
     int i = bdim * bid + tid;
@@ -161,17 +160,116 @@ __global__ void bellmanFordIteration(int *weights, int *neighbours,
     __syncthreads();
 }
 
-/**
- * Bellman-Ford algorithm. Find the shortest path from vertex 0 to other
- * vertices.
- * @param blockPerGrid number of blocks per grid
- * @param threadsPerBlock number of threads per block
- * @param n input size
- * @param *mat input adjacency matrix
- * @param *dist distance array
- * @param *has_negative_cycle a bool variable to recode if there are negative
- * cycles
- */
+// Kernel to perform block-level reduction
+__global__ void blockReduceOr(bool *input, bool *blockResults, int size)
+{
+    extern __shared__ bool shared[];
+
+    int tid = threadIdx.x;
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // Load input into shared memory
+    if (index < size)
+    {
+        shared[tid] = input[index];
+    }
+    else
+    {
+        shared[tid] = false; // If index is out of bounds, use false
+    }
+
+    __syncthreads();
+
+    // Perform reduction in shared memory
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
+    {
+        if (tid < stride)
+        {
+            shared[tid] = shared[tid] || shared[tid + stride];
+        }
+        __syncthreads();
+    }
+
+    // Write the result of this block's reduction to the blockResults array
+    if (tid == 0)
+    {
+        blockResults[blockIdx.x] = shared[0];
+    }
+}
+
+// Function to handle multi-pass reduction
+bool reduceLargeArray(bool *d_input, int size, int blockSize)
+{
+    int gridSize = (size + blockSize - 1) / blockSize;
+    bool *d_intermediate;
+    bool h_result;
+
+    // Allocate memory for intermediate results
+    cudaMalloc((void **)&d_intermediate, gridSize * sizeof(bool));
+
+    // Continue reducing the array in multiple passes until gridSize == 1
+    while (gridSize > 1)
+    {
+        size_t sharedMemorySize = blockSize * sizeof(bool);
+
+        // Launch kernel to reduce the current input into d_intermediate
+        blockReduceOr<<<gridSize, blockSize, sharedMemorySize>>>(
+            d_input, d_intermediate, size);
+        cudaDeviceSynchronize();
+        // Update size to reflect the size of the intermediate results
+        size = gridSize;
+        gridSize = (size + blockSize - 1) / blockSize;
+
+        // Swap input and intermediate buffers (reuse input as the intermediate
+        // result)
+        bool *temp = d_input;
+        d_input = d_intermediate;
+        d_intermediate = temp;
+    }
+
+    // Now the gridSize is 1, reduce the final intermediate result to a single
+    // value
+    size_t sharedMemorySize = blockSize * sizeof(bool);
+    blockReduceOr<<<1, blockSize, sharedMemorySize>>>(d_input, d_intermediate,
+                                                      size);
+
+    // Copy the final result back to the host
+    cudaMemcpy(&h_result, d_intermediate, sizeof(bool), cudaMemcpyDeviceToHost);
+
+    // Free intermediate memory
+    cudaFree(d_intermediate);
+
+    return h_result;
+}
+
+void freeMem(int *d_dist, int **d_neighbouringNodes,
+             int **d_neighbouringNodesWeights, int *neighboursCount, int *d_predecessor, bool *d_hasChanged, int size)
+{
+    cudaFree(d_dist);
+    cudaFree(d_hasChanged);
+    cudaFree(d_predecessor);
+    free(neighboursCount);
+    for (int i = 0; i < size; ++i)
+    {
+        cudaFree(d_neighbouringNodes[i]);
+        cudaFree(d_neighbouringNodesWeights[i]);
+    }
+    free(d_neighbouringNodes);
+    free(d_neighbouringNodesWeights);
+}
+
+BFOutput *initBFOutput(int startNode, int size)
+{
+    BFOutput *result;
+    result = (BFOutput *)malloc(sizeof(BFOutput));
+    (*result).startNode = startNode;
+    (*result).predecessor = (int *)malloc(size * sizeof(int));
+    (*result).dist = (int *)malloc(size * sizeof(int));
+    (*result).negativeCycleNode = -1;
+    (*result).numberNodes = size;
+    return result;
+}
+
 BFOutput *bellmanFordCuda(const char *filename, int startNode)
 {
     // Pointer to the graph on the device
@@ -201,21 +299,15 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
     int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
     // Call the function to copy the SourceGraph to the GPU
 
-    BFOutput *result;
-    result = (BFOutput *)malloc(sizeof(BFOutput));
-    (*result).startNode = startNode;
-    (*result).predecessor = (int *)malloc(size * sizeof(int));
-    (*result).dist = (int *)malloc(size * sizeof(int));
-    (*result).negativeCycleNode = -1;
-    (*result).numberNodes = size;
+    BFOutput *result = initBFOutput(startNode, size);
 
     dim3 gdim(blocksPerGrid);
     dim3 bdim(threadsPerBlock);
     double tstart, tend;
     tstart = gettime();
     printf("before relax_initial\n");
-    relax_initial<<<gdim, bdim>>>(d_dist, d_predecessor,
-                                  d_hasChanged, size, startNode, INF);
+    relax_initial<<<gdim, bdim>>>(d_dist, d_predecessor, d_hasChanged, size,
+                                  startNode, INF);
     cudaMemcpy(wasUpdatedLastIter, d_hasChanged, size * sizeof(bool),
                cudaMemcpyDeviceToHost);
     wasUpdatedLastIter[startNode] = true;
@@ -233,16 +325,14 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
             {
                 printf("source is: %d\n", source);
 
-                bellmanFordIteration<<<gdim, bdim>>>(d_neighbouringNodesWeights[source],
-                                                     d_neighbouringNodes[source],
-                                                     neighboursCount[source],
-                                                     d_predecessor,
-                                                     d_dist,
-                                                     d_hasChanged,
-                                                     source);
+                bellmanFordIteration<<<gdim, bdim>>>(
+                    d_neighbouringNodesWeights[source], d_neighbouringNodes[source],
+                    neighboursCount[source], d_predecessor, d_dist, d_hasChanged,
+                    source);
             }
             cudaDeviceSynchronize();
-            if (iter == size - 1 && d_hasChanged)
+            bool hasChange = reduceLargeArray(d_hasChanged, size, threadsPerBlock);
+            if (iter == size - 1 && hasChange)
             {
                 printf("has neg cycle\n");
                 tend = gettime();
@@ -251,6 +341,14 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
                 (*result).negativeCycleNode = source;
                 (*result).hasNegativeCycle = true;
                 (*result).timeInSeconds = tend - tstart;
+
+                freeMem(d_dist,
+                        d_neighbouringNodes,
+                        d_neighbouringNodesWeights,
+                        neighboursCount,
+                        d_predecessor,
+                        d_hasChanged,
+                        size);
                 return result;
             }
         }
@@ -261,18 +359,18 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
     }
 
     tend = gettime();
-    cudaMemcpy((*result).dist, d_dist, size * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy((*result).dist, d_dist, size * sizeof(int),
+               cudaMemcpyDeviceToHost);
     (*result).hasNegativeCycle = false;
     (*result).timeInSeconds = tend - tstart;
 
-    /*cudaMemcpy(h_dist, d_dist, size * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_predecessor, d_predecessor, size * sizeof(int),
-               cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_wasUpdatedLastIter, d_wasUpdatedLastIter, size * sizeof(bool),
-               cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_hasChanged, d_hasChanged, size * sizeof(bool),
-               cudaMemcpyDeviceToHost);*/
-
+    freeMem(d_dist,
+            d_neighbouringNodes,
+            d_neighbouringNodesWeights,
+            neighboursCount,
+            d_predecessor,
+            d_hasChanged,
+            size);
     return result;
 }
 
@@ -318,18 +416,17 @@ void writeResult(BFOutput *out, const char *filename, bool writeAll)
 int main(int argc, char **argv)
 {
     BFOutput *result =
-        bellmanFordCuda("../../data/no_cycle/graph_no_cycle_5.txt", 0);
+        bellmanFordCuda("../../data/graph_no_cycle_5.txt", 0);
     printf("bllman ford finished\n");
     printf("---------------- %d\n", (*result).hasNegativeCycle);
-    //  writeResult(result, "../../results/omp_source/no_cycle/graph_no_cycle_5.txt",
-    //  true);
+    writeResult(result,
+                "../../results/cuda/graph_no_cycle_5.txt", true);
 
-    /*SourceGraph *readGraphNegativeCycle =
-      readSourceGraphFromFile("../../data/cycle/graph_cycle_5.txt");
-  BFOutput *resultCycle = bellmanFordCuda(blocksPerGrid, threadsPerBlock,
-                                          readGraphNegativeCycle, 0);
-  writeResult(resultCycle, "../../results/omp_source/cycle/graph_cycle_5.txt",
-              true);
-  */
+    result =
+        bellmanFordCuda("../../data/graph_cycle_5.txt", 0);
+    printf("bllman ford finished\n");
+    printf("---------------- %d\n", (*result).hasNegativeCycle);
+    writeResult(result,
+                "../../results/cuda/graph_cycle_5.txt", true);
     return 0;
 }

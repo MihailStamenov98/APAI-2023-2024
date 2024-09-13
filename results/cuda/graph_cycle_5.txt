@@ -1,0 +1,9 @@
+There is negative cycle in the graph
+From this node one can bactrack to find the cycle = 0
+timeInSeconds = 0.000000
+numberNodes = 5
+Predcessor of node 0 is node 1
+Predcessor of node 1 is node 2
+Predcessor of node 2 is node 3
+Predcessor of node 3 is node 0
+Predcessor of node 4 is node 2

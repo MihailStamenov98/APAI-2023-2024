@@ -14,6 +14,7 @@ SRC_SolverSource = output_structures.c \
 
 # Source files in folder B (C source files)
 SRC_GenerateGraph = ../generate_graphs/compare_graphs.c \
+					../generate_graphs/graph_structures.c \
       				../generate_graphs/output_graphs.c \
       				../generate_graphs/read_graphs.c \
       				../generate_graphs/graph_generator.c

@@ -1,6 +1,6 @@
 #include "read_graphs.h"
 
-DestGraph *readDestGraphFromFileBinary(const char *filename)
+DestGraph *readDestGraphFromFile(const char *filename)
 {
     FILE *file = fopen(filename, "rb"); // Open in binary read mode
     if (file == NULL)
@@ -43,7 +43,7 @@ DestGraph *readDestGraphFromFileBinary(const char *filename)
     return g;
 }
 
-SourceGraph *readSourceGraphFromFileBinary(const char *filename)
+SourceGraph *readSourceGraphFromFile(const char *filename)
 {
     FILE *file = fopen(filename, "rb"); // Open in binary read mode
     if (file == NULL)

@@ -8,28 +8,24 @@ LIBS =
 
 # Source files in folder A (C source files)
 SRC_SolverDest = output_structures.c \
-				 bellman_ford_parallel_dest.c
+                 bellman_ford_parallel_dest.c
 SRC_SolverSource = output_structures.c \
-				   bellman_ford_parallel_source.c
+                   bellman_ford_parallel_source.c
 
 # Source files in folder B (C source files)
 SRC_GenerateGraph = ../generate_graphs/compare_graphs.c \
-					../generate_graphs/graph_structures.c \
-      				../generate_graphs/output_graphs.c \
-      				../generate_graphs/read_graphs.c \
-      				../generate_graphs/graph_generator.c
+                    ../generate_graphs/graph_structures.c \
+                    ../generate_graphs/output_graphs.c \
+                    ../generate_graphs/read_graphs.c \
+                    ../generate_graphs/graph_generator.c
 
 # CUDA source files
 SRC_CUDA = bellman_ford_cuda.cu \
-		   cuda_utils.cu
+           cuda_utils.cu
 
-# Object directory for A
+# Object directories
 OBJDIR_Solvers = obj
-
-# Object directory for B
 OBJDIR_Generators = obj_generators
-
-# Object directory for CUDA files
 OBJDIR_CUDA = obj_cuda
 
 # Object files for C source files
@@ -82,7 +78,7 @@ $(PROGRAM_SOURCE): $(OBJ_source) $(OBJ_Generators)
 
 # Build the CUDA executable
 $(PROGRAM_CUDA): $(OBJ_CUDA) $(OBJ_Generators)
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+	$(NVCC) $(NVCCFLAGS) -o $@ $^ 
 
 # Compile source files in folder A to object files in OBJDIR_Solvers
 $(OBJDIR_Solvers)/%.o: %.c | $(OBJDIR_Solvers)

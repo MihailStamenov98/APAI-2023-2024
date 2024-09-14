@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include "../generate_graphs/graph_generator.h"
 #include "../generate_graphs/output_graphs.h"
+#include "../generate_graphs/read_graphs.h"
 #include <omp.h>
 #include "output_structure.h"
 #define INF 1000000

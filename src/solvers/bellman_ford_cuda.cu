@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <windows.h> // For LARGE_INTEGER and QueryPerformance functions on Windows
 
 #define INF 1000000
 
@@ -102,18 +103,18 @@ void readSourceGraphFromFileToDevice(const char *filename,
 }
 double gettime(void)
 {
-    /*#ifdef _WIN32
-        LARGE_INTEGER frequency;
-        LARGE_INTEGER start;
-        QueryPerformanceFrequency(&frequency);
-        QueryPerformanceCounter(&start);
-        return (double)start.QuadPart / frequency.QuadPart;
-    #else
+#ifdef _WIN32
+    LARGE_INTEGER frequency;
+    LARGE_INTEGER start;
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&start);
+    return (double)start.QuadPart / frequency.QuadPart;
+#else
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (ts.tv_sec + (double)ts.tv_nsec / 1e9);*/
-    return 5.0;
-    // #endif
+    return (ts.tv_sec + (double)ts.tv_nsec / 1e9);
+
+#endif
 }
 
 __global__ void relax_initial(int *d_dist, int *d_predecessor,

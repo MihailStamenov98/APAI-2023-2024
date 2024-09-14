@@ -2,7 +2,8 @@
 CC = gcc
 NVCC = nvcc
 CFLAGS = -Wall -Wextra -I../generate_graphs -fopenmp
-NVCCFLAGS = -I../generate_graphs
+NVCCFLAGS = 
+
 LDFLAGS = -fopenmp
 LIBS = 
 
@@ -20,8 +21,7 @@ SRC_GenerateGraph = ../generate_graphs/compare_graphs.c \
                     ../generate_graphs/graph_generator.c
 
 # CUDA source files
-SRC_CUDA = bellman_ford_cuda.cu \
-           cuda_utils.cu
+SRC_CUDA = bellman_ford_cuda.cu
 
 # Object directories
 OBJDIR_Solvers = obj
@@ -78,12 +78,12 @@ $(PROGRAM_SOURCE): $(OBJ_source) $(OBJ_Generators)
 
 # Build the CUDA executable
 $(PROGRAM_CUDA): $(OBJ_CUDA)
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+	$(NVCC) $(NVCCFLAGS) -o $@ $^ 
 
 # Compile source files in folder A to object files in OBJDIR_Solvers
 $(OBJDIR_Solvers)/%.o: %.c | $(OBJDIR_Solvers)
 	$(MKDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ 
 
 # Compile source files in folder B to object files in OBJDIR_Generators
 $(OBJDIR_Generators)/%.o: ../generate_graphs/%.c | $(OBJDIR_Generators)
@@ -93,7 +93,7 @@ $(OBJDIR_Generators)/%.o: ../generate_graphs/%.c | $(OBJDIR_Generators)
 # Compile CUDA files to object files in OBJDIR_CUDA
 $(OBJDIR_CUDA)/%.o: %.cu | $(OBJDIR_CUDA)
 	$(MKDIR)
-	$(NVCC) $(NVCCFLAGS) -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) -c $< -o $@ 
 
 # Create the object directories if they don't exist
 $(OBJDIR_Solvers) $(OBJDIR_Generators) $(OBJDIR_CUDA):

@@ -44,7 +44,7 @@ SourceGraph* readSourceGraphFromFile(const char *filename)
     SourceGraph *g;
     g = (SourceGraph *)malloc(sizeof(SourceGraph));
 
-    fscanf(file, "g %d\n", &(*g).numNodes);
+    fscanf(file, "g %d %d\n", &(*g).numNodes, &(g->numEdges));
     (*g).nodes = (SourceNode *)malloc((*g).numNodes * sizeof(SourceNode));
     int *indexeForNode = (int *)malloc((*g).numNodes * sizeof(int));
     int numEdgesOut = 0, numEdgesIn = 0;

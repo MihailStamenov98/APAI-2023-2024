@@ -8,8 +8,9 @@ int randInt(int min, int max)
 DestGraph* createGraphNoNegativeCycle(int numNodes, int numNeighbours)
 {
     DestGraph* g;
+    g->numEdges = 0;
     g = (DestGraph *)malloc(sizeof(DestGraph));
-    (*g).numNodes = numNodes;
+    g->numNodes = numNodes;
     printf("numNodes = %d\n", numNodes);
     (*g).nodes = (DestNode *)malloc(numNodes * sizeof(DestNode));
     int *sourceForNodes = (int *)malloc(numNodes * sizeof(int));
@@ -22,6 +23,7 @@ DestGraph* createGraphNoNegativeCycle(int numNodes, int numNeighbours)
     for (int i = 0; i < (*g).numNodes; i++)
     {
         (*g).nodes[i].inNeighbours = randInt(1, numNeighbours);
+        g->numEdges += (g->nodes[i].inNeighbours);
         (*g).nodes[i].inEdges = (DestEdge *)malloc((*g).nodes[i].inNeighbours * sizeof(DestEdge));
         int lastNodeIndex = numNodes - 1;
         for (int j = 0; j < (*g).nodes[i].inNeighbours; j++)
@@ -60,9 +62,9 @@ DestGraph* createGraphWithNegativeCycle(int numNodes, int numNeighbours)
         int sourceIndex = randInt(0, currNodeInNeighbours - 1);
         int oldEdgeNodeID = (*g).nodes[cycleStart + i].inEdges[sourceIndex].source;
         DestEdge newEdge = (DestEdge){cycleStart + (i + 1) % cycleLen, -1};
-        (*g).nodes[cycleStart + i].inEdges[sourceIndex] = newEdge;
-        (*g).nodes[oldEdgeNodeID].outNeighbours--;
-        (*g).nodes[newEdge.source].outNeighbours++;
+        g->nodes[cycleStart + i].inEdges[sourceIndex] = newEdge;
+        g->nodes[oldEdgeNodeID].outNeighbours--;
+        g->nodes[newEdge.source].outNeighbours++;
     }
 
     return g;

@@ -34,7 +34,7 @@ void writeGraphToFile(DestGraph* g, const char *filename)
         exit(EXIT_FAILURE);
     }
 
-    fprintf(file, "g %d\n", (*g).numNodes);
+    fprintf(file, "g %d %d\n", g->numNodes, g->numEdges);
     for (int i = 0; i < (*g).numNodes; i++)
     {
         fprintf(file, "n %d %d\n", (*g).nodes[i].inNeighbours, (*g).nodes[i].outNeighbours);

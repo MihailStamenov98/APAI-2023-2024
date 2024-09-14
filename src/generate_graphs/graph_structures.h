@@ -33,12 +33,14 @@ typedef struct
 typedef struct
 {
     int numNodes;
+    int numEdges;
     DestNode *nodes;
 } DestGraph;
 
 typedef struct
 {
     int numNodes;
+    int numEdges;
     SourceNode *nodes;
 } SourceGraph;
 void freeDestGraph(DestGraph *graph);

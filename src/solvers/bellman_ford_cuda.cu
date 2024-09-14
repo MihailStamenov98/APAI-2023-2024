@@ -20,6 +20,7 @@ typedef struct
     int negativeCycleNode;
     double timeInSeconds;
     int numberNodes;
+    int edgesCount;
     int startNode;
     int *predecessor;
     int *dist;
@@ -44,7 +45,7 @@ void freeBFOutput(BFOutput *output)
 void readSourceGraphFromFileToDevice(const char *filename,
                                      int **&d_neighbouringNodes,
                                      int **&d_neighbouringNodesWeights, int *&n,
-                                     int *&neighboursCount)
+                                     int *&edgesCount, int *&neighboursCount)
 {
     int **neighbouringNodes;
     int **neighbouringNodesWeights;
@@ -55,8 +56,9 @@ void readSourceGraphFromFileToDevice(const char *filename,
         exit(EXIT_FAILURE);
     }
     n = (int *)malloc(sizeof(int));
+    edgesCount = (int *)malloc(sizeof(int));
 
-    fscanf(file, "g %d\n", n);
+    fscanf(file, "g %d %d\n", n, edgesCount);
     neighbouringNodes = (int **)malloc(*n * sizeof(int *));
     neighbouringNodesWeights = (int **)malloc(*n * sizeof(int *));
     d_neighbouringNodes = (int **)malloc(*n * sizeof(int *));
@@ -256,7 +258,8 @@ bool reduceLargeArray(bool *d_input, int size, int blockSize)
 }
 
 void freeMem(int *d_dist, int **d_neighbouringNodes,
-             int **d_neighbouringNodesWeights, int *neighboursCount, int *d_predecessor, bool *d_hasChanged, int size)
+             int **d_neighbouringNodesWeights, int *neighboursCount,
+             int *d_predecessor, bool *d_hasChanged, int size)
 {
     cudaFree(d_dist);
     cudaFree(d_hasChanged);
@@ -271,15 +274,16 @@ void freeMem(int *d_dist, int **d_neighbouringNodes,
     free(d_neighbouringNodesWeights);
 }
 
-BFOutput *initBFOutput(int startNode, int size)
+BFOutput *initBFOutput(int startNode, int size, int edgesCount)
 {
     BFOutput *result;
     result = (BFOutput *)malloc(sizeof(BFOutput));
-    (*result).startNode = startNode;
-    (*result).predecessor = (int *)malloc(size * sizeof(int));
-    (*result).dist = (int *)malloc(size * sizeof(int));
-    (*result).negativeCycleNode = -1;
-    (*result).numberNodes = size;
+    result->startNode = startNode;
+    result->predecessor = (int *)malloc(size * sizeof(int));
+    result->dist = (int *)malloc(size * sizeof(int));
+    result->negativeCycleNode = -1;
+    result->numberNodes = size;
+    result->edgesCount = edgesCount;
     return result;
 }
 
@@ -289,9 +293,10 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
     int **d_neighbouringNodes;
     int **d_neighbouringNodesWeights;
     int *n;
+    int *edgesCount;
     int *neighboursCount;
     readSourceGraphFromFileToDevice(filename, d_neighbouringNodes,
-                                    d_neighbouringNodesWeights, n,
+                                    d_neighbouringNodesWeights, n, edgesCount,
                                     neighboursCount);
     int size = *n;
     int *h_dist = (int *)malloc(size * sizeof(int));
@@ -312,7 +317,7 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
     int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
     // Call the function to copy the SourceGraph to the GPU
 
-    BFOutput *result = initBFOutput(startNode, size);
+    BFOutput *result = initBFOutput(startNode, size, (*edgesCount));
 
     dim3 gdim(blocksPerGrid);
     dim3 bdim(threadsPerBlock);
@@ -348,13 +353,8 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
                 (*result).hasNegativeCycle = true;
                 (*result).timeInSeconds = tend - tstart;
 
-                freeMem(d_dist,
-                        d_neighbouringNodes,
-                        d_neighbouringNodesWeights,
-                        neighboursCount,
-                        d_predecessor,
-                        d_hasChanged,
-                        size);
+                freeMem(d_dist, d_neighbouringNodes, d_neighbouringNodesWeights,
+                        neighboursCount, d_predecessor, d_hasChanged, size);
                 return result;
             }
         }
@@ -370,13 +370,8 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
     (*result).hasNegativeCycle = false;
     (*result).timeInSeconds = tend - tstart;
 
-    freeMem(d_dist,
-            d_neighbouringNodes,
-            d_neighbouringNodesWeights,
-            neighboursCount,
-            d_predecessor,
-            d_hasChanged,
-            size);
+    freeMem(d_dist, d_neighbouringNodes, d_neighbouringNodesWeights,
+            neighboursCount, d_predecessor, d_hasChanged, size);
     return result;
 }
 
@@ -398,8 +393,10 @@ void writeResult(BFOutput *out, const char *filename, bool writeAll)
     {
         fprintf(file, "There is NOT negative cycle in the graph\n");
     }
-    fprintf(file, "timeInSeconds = %lf\n", (*out).timeInSeconds);
-    fprintf(file, "numberNodes = %d\n", (*out).numberNodes);
+    fprintf(file, "timeInSeconds = %lf\n", out->timeInSeconds);
+    fprintf(file, "numberNodes = %d\n", out->numberNodes);
+    fprintf(file, "numberEdges = %d\n", out->edgesCount);
+
     if (writeAll)
     {
         for (int i = 0; i < (*out).numberNodes; i++)
@@ -421,15 +418,11 @@ void writeResult(BFOutput *out, const char *filename, bool writeAll)
 
 int main(int argc, char **argv)
 {
-    BFOutput *result =
-        bellmanFordCuda("../../data/graph_no_cycle_5.txt", 0);
-    writeResult(result,
-                "../../results/cuda/graph_no_cycle_5.txt", true);
+    BFOutput *result = bellmanFordCuda("../../data/graph_no_cycle_5.txt", 0);
+    writeResult(result, "../../results/cuda/graph_no_cycle_5.txt", true);
 
-    result =
-        bellmanFordCuda("../../data/graph_cycle_5.txt", 0);
-    writeResult(result,
-                "../../results/cuda/graph_cycle_5.txt", true);
+    result = bellmanFordCuda("../../data/graph_cycle_5.txt", 0);
+    writeResult(result, "../../results/cuda/graph_cycle_5.txt", true);
     freeBFOutput(result);
     return 0;
 }

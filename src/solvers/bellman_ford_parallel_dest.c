@@ -20,17 +20,12 @@
  */
 BFOutput* bellmanFord(int p, DestGraph* g, int startNode)
 {
-    BFOutput* result;
-    result = (BFOutput *)malloc(sizeof(BFOutput));
+    BFOutput* result = initBFOutput(startNode, g->numNodes, g->numEdges);
 
     double tstart, tstop;
     tstart = omp_get_wtime();
 
-    (*result).startNode = startNode;
-    (*result).predecessor = (int *)malloc((*g).numNodes * sizeof(int));
-    (*result).dist = (int *)malloc((*g).numNodes * sizeof(int));
-    (*result).negativeCycleNode = -1;
-    (*result).numberNodes = (*g).numNodes;
+
     bool *wasUpdatedLastIter = (bool *)malloc((*g).numNodes * sizeof(bool));
     bool *isUpdatedThisIter = (bool *)malloc((*g).numNodes * sizeof(bool));
 

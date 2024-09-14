@@ -13,11 +13,13 @@ typedef struct
     int startNode;
     int *predecessor;
     int *dist;
+    int edgesCount;
 
 } BFOutput;
 
 void writeResult(BFOutput* out, const char *filename, bool writeAll);
 void printResult(BFOutput* out, bool writeAll);
 void freeBFOutput(BFOutput *output);
+BFOutput *initBFOutput(int startNode, int size, int edgesCount);
 
 #endif

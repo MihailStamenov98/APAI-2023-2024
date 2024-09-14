@@ -19,6 +19,8 @@ void writeResult(BFOutput* out, const char *filename, bool writeAll)
     }
     fprintf(file, "timeInSeconds = %lf\n", (*out).timeInSeconds);
     fprintf(file, "numberNodes = %d\n", (*out).numberNodes);
+    fprintf(file, "numberEdges = %d\n", out->edgesCount);
+
     if (writeAll)
     {
 
@@ -67,6 +69,8 @@ void printResult(BFOutput* out, bool writeAll)
     }
     printf("timeInSeconds = %lf\n", (*out).timeInSeconds);
     printf("numberNodes = %d\n", (*out).numberNodes);
+    printf("numberEdges = %d\n", out->edgesCount);
+
     if (writeAll)
     {
 
@@ -82,4 +86,17 @@ void printResult(BFOutput* out, bool writeAll)
             }
         }
     }
+}
+
+BFOutput *initBFOutput(int startNode, int size, int edgesCount)
+{
+    BFOutput *result;
+    result = (BFOutput *)malloc(sizeof(BFOutput));
+    result->startNode = startNode;
+    result->predecessor = (int *)malloc(size * sizeof(int));
+    result->dist = (int *)malloc(size * sizeof(int));
+    result->negativeCycleNode = -1;
+    result->numberNodes = size;
+    result->edgesCount = edgesCount;
+    return result;
 }

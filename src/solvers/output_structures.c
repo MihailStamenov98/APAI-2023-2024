@@ -1,6 +1,6 @@
 #include "output_structure.h"
 
-void writeResult(BFOutput* out, const char *filename, bool writeAll)
+void writeResult(BFOutput *out, const char *filename, bool writeAll)
 {
     FILE *file = fopen(filename, "w");
     if (file == NULL)
@@ -39,7 +39,6 @@ void writeResult(BFOutput* out, const char *filename, bool writeAll)
     fclose(file);
 }
 
-
 void freeBFOutput(BFOutput *output)
 {
     if (output != NULL)
@@ -56,7 +55,7 @@ void freeBFOutput(BFOutput *output)
     }
 }
 
-void printResult(BFOutput* out, bool writeAll)
+void printResult(BFOutput *out, bool writeAll)
 {
     if ((*out).hasNegativeCycle)
     {

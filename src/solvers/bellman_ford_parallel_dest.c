@@ -18,13 +18,12 @@
  * @param *hasNegativeCycle a bool variable to recode if there are negative cycles
  * @param *negativeCycleNode a bool variable to recode the node to strat the search from
  */
-BFOutput* bellmanFord(int p, DestGraph* g, int startNode)
+BFOutput *bellmanFord(int p, DestGraph *g, int startNode)
 {
-    BFOutput* result = initBFOutput(startNode, g->numNodes, g->numEdges);
+    BFOutput *result = initBFOutput(startNode, g->numNodes, g->numEdges);
 
     double tstart, tstop;
     tstart = omp_get_wtime();
-
 
     bool *wasUpdatedLastIter = (bool *)malloc((*g).numNodes * sizeof(bool));
     bool *isUpdatedThisIter = (bool *)malloc((*g).numNodes * sizeof(bool));
@@ -104,12 +103,12 @@ BFOutput* bellmanFord(int p, DestGraph* g, int startNode)
 
 int main()
 {
-    DestGraph* readGraph = readDestGraphFromFile("../../data/graph_no_cycle_5.txt");
-    BFOutput* result = bellmanFord(2, readGraph, 0);
+    DestGraph *readGraph = readDestGraphFromFile("../../data/graph_no_cycle_5.txt");
+    BFOutput *result = bellmanFord(2, readGraph, 0);
     printf("---------------- %d\n", (*result).hasNegativeCycle);
     writeResult(result, "../../results/omp_dest/graph_no_cycle_5.txt", true);
-    DestGraph* readGraphNegativeCycle = readDestGraphFromFile("../../data/graph_cycle_5.txt");
-    BFOutput* resultCycle = bellmanFord(2, readGraphNegativeCycle, 0);
+    DestGraph *readGraphNegativeCycle = readDestGraphFromFile("../../data/graph_cycle_5.txt");
+    BFOutput *resultCycle = bellmanFord(2, readGraphNegativeCycle, 0);
     writeResult(resultCycle, "../../results/omp_dest/graph_cycle_5.txt", true);
     freeBFOutput(result);
     freeBFOutput(resultCycle);

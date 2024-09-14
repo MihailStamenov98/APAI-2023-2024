@@ -5,9 +5,9 @@ int randInt(int min, int max)
     return min + rand() % (max - min + 1);
 }
 
-DestGraph* createGraphNoNegativeCycle(int numNodes, int numNeighbours)
+DestGraph *createGraphNoNegativeCycle(int numNodes, int numNeighbours)
 {
-    DestGraph* g;
+    DestGraph *g;
     g->numEdges = 0;
     g = (DestGraph *)malloc(sizeof(DestGraph));
     g->numNodes = numNodes;
@@ -50,9 +50,9 @@ DestGraph* createGraphNoNegativeCycle(int numNodes, int numNeighbours)
 }
 
 // Function to create a graph with a negative cycle
-DestGraph* createGraphWithNegativeCycle(int numNodes, int numNeighbours)
+DestGraph *createGraphWithNegativeCycle(int numNodes, int numNeighbours)
 {
-    DestGraph* g = createGraphNoNegativeCycle(numNodes, numNeighbours);
+    DestGraph *g = createGraphNoNegativeCycle(numNodes, numNeighbours);
     // Introduce a negative cycle
     int cycleLen = randInt(3, numNodes); // Create a small cycle of 3-5 nodes
     int cycleStart = randInt(0, numNodes - cycleLen);

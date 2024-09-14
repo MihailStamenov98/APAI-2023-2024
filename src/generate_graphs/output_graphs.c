@@ -1,6 +1,6 @@
 #include "output_graphs.h"
 
-void printSourceGraph(SourceGraph* g)
+void printSourceGraph(SourceGraph *g)
 {
     for (int i = 0; i < (*g).numNodes; ++i)
     {
@@ -12,7 +12,7 @@ void printSourceGraph(SourceGraph* g)
     }
 }
 
-void printDestGraph(DestGraph* g)
+void printDestGraph(DestGraph *g)
 {
     for (int i = 0; i < (*g).numNodes; ++i)
     {
@@ -25,7 +25,7 @@ void printDestGraph(DestGraph* g)
 }
 
 // Function to write a graph to a file
-void writeGraphToFile(DestGraph* g, const char *filename)
+void writeGraphToFile(DestGraph *g, const char *filename)
 {
     FILE *file = fopen(filename, "w");
     if (file == NULL)

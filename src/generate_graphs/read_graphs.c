@@ -1,6 +1,6 @@
 #include "read_graphs.h"
 
-DestGraph* readDestGraphFromFile(const char *filename)
+DestGraph *readDestGraphFromFile(const char *filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -32,7 +32,7 @@ DestGraph* readDestGraphFromFile(const char *filename)
     return g;
 }
 
-SourceGraph* readSourceGraphFromFile(const char *filename)
+SourceGraph *readSourceGraphFromFile(const char *filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -71,5 +71,5 @@ SourceGraph* readSourceGraphFromFile(const char *filename)
     }
 
     fclose(file);
-    return  g;
+    return g;
 }

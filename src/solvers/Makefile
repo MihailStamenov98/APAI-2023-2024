@@ -41,7 +41,7 @@ OBJ_CUDA = $(patsubst %.cu,$(OBJDIR_CUDA)/%.o,$(SRC_CUDA))
 # Target executables
 PROGRAM_DEST = bf_dest
 PROGRAM_SOURCE = bf_source
-PROGRAM_CUDA = cuda_prog
+PROGRAM_CUDA = bf_cuda
 
 # Check for operating system
 ifeq ($(OS),Windows_NT)
@@ -77,8 +77,8 @@ $(PROGRAM_SOURCE): $(OBJ_source) $(OBJ_Generators)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 # Build the CUDA executable
-$(PROGRAM_CUDA): $(OBJ_CUDA) $(OBJ_Generators)
-	$(NVCC) $(NVCCFLAGS) -o $@ $^ 
+$(PROGRAM_CUDA): $(OBJ_CUDA)
+	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 # Compile source files in folder A to object files in OBJDIR_Solvers
 $(OBJDIR_Solvers)/%.o: %.c | $(OBJDIR_Solvers)
@@ -103,12 +103,14 @@ $(OBJDIR_Solvers) $(OBJDIR_Generators) $(OBJDIR_CUDA):
 clean:
 ifeq ($(OS),Windows_NT)
 	$(RM) $(OBJDIR_Solvers)\*.o $(OBJDIR_Generators)\*.o $(OBJDIR_CUDA)\*.o 2>nul
-	$(RM) $(PROGRAM_DEST) $(PROGRAM_SOURCE) $(PROGRAM_CUDA) 2>nul
+	$(RM) $(PROGRAM_DEST).exe $(PROGRAM_SOURCE).exe $(PROGRAM_CUDA).exe 2>nul
+	$(RM) *.exp *.lib 2>nul
 	$(RMDIR) /q /s $(OBJDIR_Solvers) 2>nul
 	$(RMDIR) /q /s $(OBJDIR_Generators) 2>nul
 	$(RMDIR) /q /s $(OBJDIR_CUDA) 2>nul
 else
 	$(RM) $(OBJDIR_Solvers)/*.o $(OBJDIR_Generators)/*.o $(OBJDIR_CUDA)/*.o 2> /dev/null
 	$(RM) $(PROGRAM_DEST) $(PROGRAM_SOURCE) $(PROGRAM_CUDA) 2> /dev/null
+	$(RM) *.exp *.lib 2> /dev/null
 	$(RMDIR) $(OBJDIR_Solvers) $(OBJDIR_Generators) $(OBJDIR_CUDA) 2> /dev/null || true
 endif

@@ -8,9 +8,9 @@ int randInt(int min, int max)
 DestGraph *createGraphNoNegativeCycle(int numNodes, int numNeighbours)
 {
     DestGraph *g;
-    g->numEdges = 0;
     g = (DestGraph *)malloc(sizeof(DestGraph));
     g->numNodes = numNodes;
+    g->numEdges = 0;
     printf("numNodes = %d\n", numNodes);
     (*g).nodes = (DestNode *)malloc(numNodes * sizeof(DestNode));
     int *sourceForNodes = (int *)malloc(numNodes * sizeof(int));
@@ -44,7 +44,7 @@ DestGraph *createGraphNoNegativeCycle(int numNodes, int numNeighbours)
             (*g).nodes[i].inEdges[j].weight = randInt(0, 20);
         }
     }
-    printf("Graph generated\n");
+    printf("Graph generated with number edges %d\n", g->numEdges);
 
     return g;
 }

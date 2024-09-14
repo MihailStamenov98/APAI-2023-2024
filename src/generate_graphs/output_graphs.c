@@ -24,26 +24,35 @@ void printDestGraph(DestGraph *g)
     }
 }
 
-// Function to write a graph to a file
 void writeGraphToFile(DestGraph *g, const char *filename)
 {
-    FILE *file = fopen(filename, "w");
+    FILE *file = fopen(filename, "wb"); // Open in binary write mode
     if (file == NULL)
     {
         perror("Failed to open file");
         exit(EXIT_FAILURE);
     }
 
-    fprintf(file, "g %d %d\n", g->numNodes, g->numEdges);
-    for (int i = 0; i < (*g).numNodes; i++)
+    // Write the number of nodes and edges
+    fwrite(&g->numNodes, sizeof(int), 1, file);
+    fwrite(&g->numEdges, sizeof(int), 1, file);
+
+    // Write the inNeighbours and outNeighbours for each node
+    for (int i = 0; i < g->numNodes; i++)
     {
-        fprintf(file, "n %d %d\n", (*g).nodes[i].inNeighbours, (*g).nodes[i].outNeighbours);
+        fwrite(&g->nodes[i].inNeighbours, sizeof(int), 1, file);
+        fwrite(&g->nodes[i].outNeighbours, sizeof(int), 1, file);
     }
-    for (int dest = 0; dest < (*g).numNodes; dest++)
+
+    // Write the inEdges for each node
+    for (int dest = 0; dest < g->numNodes; dest++)
     {
-        for (int j = 0; j < (*g).nodes[dest].inNeighbours; j++)
+        for (int j = 0; j < g->nodes[dest].inNeighbours; j++)
         {
-            fprintf(file, "e %d %d %d\n", (*g).nodes[dest].inEdges[j].source, dest, (*g).nodes[dest].inEdges[j].weight);
+            // Write the source, destination, and weight of the edge
+            fwrite(&g->nodes[dest].inEdges[j].source, sizeof(int), 1, file);
+            fwrite(&dest, sizeof(int), 1, file); // Destination node (current node)
+            fwrite(&g->nodes[dest].inEdges[j].weight, sizeof(int), 1, file);
         }
     }
 

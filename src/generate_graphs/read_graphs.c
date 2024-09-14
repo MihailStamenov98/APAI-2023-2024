@@ -1,30 +1,41 @@
 #include "read_graphs.h"
 
-DestGraph *readDestGraphFromFile(const char *filename)
+DestGraph *readDestGraphFromFileBinary(const char *filename)
 {
-    FILE *file = fopen(filename, "r");
+    FILE *file = fopen(filename, "rb"); // Open in binary read mode
     if (file == NULL)
     {
         perror("Failed to open file");
         exit(EXIT_FAILURE);
     }
 
-    DestGraph *g;
-    g = (DestGraph *)malloc(sizeof(DestGraph));
+    DestGraph *g = (DestGraph *)malloc(sizeof(DestGraph));
 
-    fscanf(file, "g %d\n", &(*g).numNodes);
-    (*g).nodes = (DestNode *)malloc((*g).numNodes * sizeof(DestNode));
-    for (int i = 0; i < (*g).numNodes; i++)
+    // Read the number of nodes and edges
+    fread(&g->numNodes, sizeof(int), 1, file);
+    fread(&g->numEdges, sizeof(int), 1, file);
+
+    // Allocate memory for the nodes
+    g->nodes = (DestNode *)malloc(g->numNodes * sizeof(DestNode));
+
+    // Read the inNeighbours and outNeighbours for each node
+    for (int i = 0; i < g->numNodes; i++)
     {
-        fscanf(file, "n %d %d\n", &(*g).nodes[i].inNeighbours, &(*g).nodes[i].outNeighbours);
-        (*g).nodes[i].inEdges = (DestEdge *)malloc((*g).nodes[i].inNeighbours * sizeof(DestEdge));
+        fread(&g->nodes[i].inNeighbours, sizeof(int), 1, file);
+        fread(&g->nodes[i].outNeighbours, sizeof(int), 1, file);
+
+        // Allocate memory for the inEdges for each node
+        g->nodes[i].inEdges = (DestEdge *)malloc(g->nodes[i].inNeighbours * sizeof(DestEdge));
     }
-    for (int i = 0; i < (*g).numNodes; i++)
+
+    // Read the inEdges (source, destination, weight) for each node
+    for (int dest = 0; dest < g->numNodes; dest++)
     {
-        for (int j = 0; j < (*g).nodes[i].inNeighbours; j++)
+        for (int j = 0; j < g->nodes[dest].inNeighbours; j++)
         {
-            int x;
-            fscanf(file, "e %d %d %d\n", &(*g).nodes[i].inEdges[j].source, &x, &(*g).nodes[i].inEdges[j].weight);
+            fread(&g->nodes[dest].inEdges[j].source, sizeof(int), 1, file);
+            fread(&dest, sizeof(int), 1, file); // Destination node (this node)
+            fread(&g->nodes[dest].inEdges[j].weight, sizeof(int), 1, file);
         }
     }
 
@@ -32,44 +43,103 @@ DestGraph *readDestGraphFromFile(const char *filename)
     return g;
 }
 
-SourceGraph *readSourceGraphFromFile(const char *filename)
+SourceGraph *readSourceGraphFromFileBinary(const char *filename)
 {
-    FILE *file = fopen(filename, "r");
+    FILE *file = fopen(filename, "rb"); // Open in binary read mode
     if (file == NULL)
     {
         perror("Failed to open file");
         exit(EXIT_FAILURE);
     }
 
-    SourceGraph *g;
-    g = (SourceGraph *)malloc(sizeof(SourceGraph));
+    SourceGraph *g = (SourceGraph *)malloc(sizeof(SourceGraph));
 
-    fscanf(file, "g %d %d\n", &(*g).numNodes, &(g->numEdges));
-    (*g).nodes = (SourceNode *)malloc((*g).numNodes * sizeof(SourceNode));
-    int *indexeForNode = (int *)malloc((*g).numNodes * sizeof(int));
+    // Read the number of nodes and edges
+    fread(&g->numNodes, sizeof(int), 1, file);
+    fread(&g->numEdges, sizeof(int), 1, file);
+
+    // Allocate memory for the nodes and index tracking
+    g->nodes = (SourceNode *)malloc(g->numNodes * sizeof(SourceNode));
+    int *indexForNode = (int *)malloc(g->numNodes * sizeof(int));
     int numEdgesOut = 0, numEdgesIn = 0;
-    for (int i = 0; i < (*g).numNodes; i++)
+
+    // Read inNeighbours and outNeighbours for each node
+    for (int i = 0; i < g->numNodes; i++)
     {
-        fscanf(file, "n %d %d\n", &(*g).nodes[i].inNeighbours, &(*g).nodes[i].outNeighbours);
-        (*g).nodes[i].outEdges = (SourceEdge *)malloc((*g).nodes[i].outNeighbours * sizeof(SourceEdge));
-        indexeForNode[i] = 0;
-        numEdgesOut = numEdgesOut + (*g).nodes[i].outNeighbours;
-        numEdgesIn = numEdgesIn + (*g).nodes[i].inNeighbours;
+        fread(&g->nodes[i].inNeighbours, sizeof(int), 1, file);
+        fread(&g->nodes[i].outNeighbours, sizeof(int), 1, file);
+
+        // Allocate memory for the outEdges for each node
+        g->nodes[i].outEdges = (SourceEdge *)malloc(g->nodes[i].outNeighbours * sizeof(SourceEdge));
+
+        indexForNode[i] = 0;
+        numEdgesOut += g->nodes[i].outNeighbours;
+        numEdgesIn += g->nodes[i].inNeighbours;
     }
+
     printf("Are numEdgesOut == numEdgesIn: %d\n", numEdgesIn == numEdgesOut);
     printf("Total number of edges = %d\n", numEdgesIn);
 
+    // Read the edges (source, destination, weight)
     for (int i = 0; i < numEdgesIn; i++)
     {
-        int source;
-        int dest;
-        int weight;
-        fscanf(file, "e %d %d %d\n", &source, &dest, &weight);
-        (*g).nodes[source].outEdges[indexeForNode[source]].weight = weight;
-        (*g).nodes[source].outEdges[indexeForNode[source]].dest = dest;
-        indexeForNode[source]++;
+        int source, dest, weight;
+        fread(&source, sizeof(int), 1, file);
+        fread(&dest, sizeof(int), 1, file);
+        fread(&weight, sizeof(int), 1, file);
+
+        g->nodes[source].outEdges[indexForNode[source]].dest = dest;
+        g->nodes[source].outEdges[indexForNode[source]].weight = weight;
+        indexForNode[source]++;
     }
 
     fclose(file);
     return g;
+}
+
+#define NO_EDGE_VALUE 21 // Value to represent no edge
+
+int **readGraphToMatrix(const char *filename, int *numNodes)
+{
+    FILE *file = fopen(filename, "rb"); // Open in binary read mode
+    if (file == NULL)
+    {
+        perror("Failed to open file");
+        exit(EXIT_FAILURE);
+    }
+
+    int numEdges;
+
+    // Read the number of nodes and edges
+    fread(numNodes, sizeof(int), 1, file);
+    fread(&numEdges, sizeof(int), 1, file);
+
+    // Allocate memory for the adjacency matrix
+    int **matrix = (int **)malloc(*numNodes * sizeof(int *));
+    for (int i = 0; i < *numNodes; i++)
+    {
+        matrix[i] = (int *)malloc(*numNodes * sizeof(int));
+
+        // Initialize the matrix to NO_EDGE_VALUE for no edges
+        for (int j = 0; j < *numNodes; j++)
+        {
+            matrix[i][j] = (i == j) ? 0 : NO_EDGE_VALUE; // No self-loops, so 0 for diagonal
+        }
+    }
+
+    // Read the edges and populate the matrix
+    for (int i = 0; i < numEdges; i++)
+    {
+        int source, dest, weight;
+
+        fread(&source, sizeof(int), 1, file);
+        fread(&dest, sizeof(int), 1, file);
+        fread(&weight, sizeof(int), 1, file);
+
+        // Populate the matrix with the weight of the edge
+        matrix[source][dest] = weight;
+    }
+
+    fclose(file);
+    return matrix;
 }

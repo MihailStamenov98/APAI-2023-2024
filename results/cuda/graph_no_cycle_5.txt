@@ -1,6 +1,7 @@
 There is NOT negative cycle in the graph
-timeInSeconds = 0.000000
+timeInSeconds = 0.002432
 numberNodes = 5
+numberEdges = 2105475408
 Distance from node 0 to node = 0 is 0
 Distance from node 0 to node = 1 is 5
 Distance from node 0 to node = 2 is 9

@@ -1,6 +1,6 @@
 There is negative cycle in the graph
 From this node one can bactrack to find the cycle = 4
-timeInSeconds = 0.003000
+timeInSeconds = 0.000084
 numberNodes = 5
 numberEdges = 12
 Predcessor of node 0 is node 1

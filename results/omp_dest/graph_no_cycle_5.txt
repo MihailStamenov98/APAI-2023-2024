@@ -1,5 +1,5 @@
 There is NOT negative cycle in the graph
-timeInSeconds = 0.000000
+timeInSeconds = 0.000094
 numberNodes = 5
 numberEdges = 13
 Distance from node 0 to node = 0 is 0

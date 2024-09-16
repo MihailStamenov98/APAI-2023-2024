@@ -44,71 +44,56 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
     }
     (*result).dist[startNode] = 0;
     wasUpdatedLastIter[startNode] = true;
+    bool isThereChangeInIteration;
 
     for (int iter = 0; iter < (*g).numNodes; iter++)
     {
-#pragma omp parallel for
+        isThereChangeInIteration = false;
         for (int source = 0; source < (*g).numNodes; ++source)
         {
-            isUpdatedThisIter[source] = false;
-        }
-        for (int source = 0; source < (*g).numNodes; ++source)
-        {
-#pragma omp parallel for
-            for (int edgeIndex = 0; edgeIndex < (*g).nodes[source].outNeighbours;
-                 ++edgeIndex)
+            if (wasUpdatedLastIter[source])
             {
-                if (wasUpdatedLastIter[source])
+#pragma omp parallel for
+                for (int edgeIndex = 0; edgeIndex < (*g).nodes[source].outNeighbours;
+                     ++edgeIndex)
                 {
+
                     int destination = (*g).nodes[source].outEdges[edgeIndex].dest;
                     int weight = (*g).nodes[source].outEdges[edgeIndex].weight;
-                    int new_dist = (*result).dist[source] + weight;
-                    // printf("source = %d, dest = %d, weight= %d, dist_dest = %d,
-                    // dist_source = %d, new_weight = %d\n", source, dest, weight,
-                    // result.dist[dest], result.dist[source], new_dis);
-                    if (new_dist < (*result).dist[destination])
+                    int new_dist = result->dist[source] + weight;
+                    if (new_dist < result->dist[destination])
                     {
                         isUpdatedThisIter[destination] = true;
-                        (*result).dist[destination] = new_dist;
-                        (*result).predecessor[destination] = source;
-                        if (iter == (*g).numNodes - 1)
-                        {
-
-#pragma omp critical
-                            {
-                                (*result).negativeCycleNode = source;
-                                (*result).hasNegativeCycle = true;
-                            }
-                        }
+                        result->dist[destination] = new_dist;
+                        result->predecessor[destination] = source;
                     }
                 }
             }
-            if ((*result).hasNegativeCycle)
+#pragma omp parallel for reduction(| : isThereChangeInIteration)
+            for (int i = 0; i < g->numNodes; ++i)
             {
-                return result;
+                isThereChangeInIteration = isThereChangeInIteration | isUpdatedThisIter[i];
+            }
+            if (iter == g->numNodes - 1 && isThereChangeInIteration)
+            {
+                result->negativeCycleNode = source;
+                result->hasNegativeCycle = true;
             }
         }
-        bool isThereChangeInIteration = false;
+
 #pragma omp parallel for reduction(| : isThereChangeInIteration)
-        for (int source = 0; source < (*g).numNodes; ++source)
+        for (int i = 0; i < g->numNodes; ++i)
         {
-            wasUpdatedLastIter[source] = isUpdatedThisIter[source];
-            isThereChangeInIteration =
-                isThereChangeInIteration | isUpdatedThisIter[source];
+            wasUpdatedLastIter[i] = isUpdatedThisIter[i];
+            isUpdatedThisIter[i] = false;
         }
 
         if (!isThereChangeInIteration)
         {
-            (*result).hasNegativeCycle = false;
+            result->hasNegativeCycle = false;
             tstop = omp_get_wtime();
-            (*result).timeInSeconds = tstop - tstart;
+            result->timeInSeconds = tstop - tstart;
             return result;
-        }
-
-#pragma omp parallel for
-        for (int i = 0; i < (*g).numNodes; i++)
-        {
-            wasUpdatedLastIter[i] = isUpdatedThisIter[i];
         }
     }
 

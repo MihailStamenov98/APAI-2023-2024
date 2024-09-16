@@ -48,9 +48,8 @@ void readSourceGraphFromFileToDevice(const char *filename,
                                      int **&d_neighbouringNodesWeights, int *&n,
                                      int *&edgesCount, int *&neighboursCount)
 {
-    int **neighbouringNodes;
-    int **neighbouringNodesWeights;
-    FILE *file = fopen(filename, "r");
+    // Open the file in binary read mode
+    FILE *file = fopen(filename, "rb");
     if (file == NULL)
     {
         perror("Failed to open file");
@@ -58,39 +57,51 @@ void readSourceGraphFromFileToDevice(const char *filename,
     }
     n = (int *)malloc(sizeof(int));
     edgesCount = (int *)malloc(sizeof(int));
-
-    fscanf(file, "g %d %d\n", n, edgesCount);
-    neighbouringNodes = (int **)malloc(*n * sizeof(int *));
-    neighbouringNodesWeights = (int **)malloc(*n * sizeof(int *));
+    // Read the number of nodes and edges
+    fread(n, sizeof(int), 1, file);
+    fread(edgesCount, sizeof(int), 1, file);
+    // Allocate memory for nodes and edges
+    int **neighbouringNodes = (int **)malloc(*n * sizeof(int *));
+    int **neighbouringNodesWeights = (int **)malloc(*n * sizeof(int *));
     d_neighbouringNodes = (int **)malloc(*n * sizeof(int *));
     d_neighbouringNodesWeights = (int **)malloc(*n * sizeof(int *));
     neighboursCount = (int *)malloc(*n * sizeof(int));
+
     int *indexeForNode = (int *)malloc(*n * sizeof(int));
     int numEdgesOut = 0;
+
+    // Read the inNeighbours and outNeighbours for each node
     for (int i = 0; i < *n; i++)
     {
-        int temp;
-        fscanf(file, "n %d %d\n", &temp, &neighboursCount[i]);
+        int inNeighbours;
+        fread(&inNeighbours, sizeof(int), 1, file);
+        fread(&neighboursCount[i], sizeof(int), 1, file);
+
         cudaMalloc(&d_neighbouringNodes[i], neighboursCount[i] * sizeof(int));
         cudaMalloc(&d_neighbouringNodesWeights[i],
                    neighboursCount[i] * sizeof(int));
+
         neighbouringNodes[i] = (int *)malloc(neighboursCount[i] * sizeof(int));
         neighbouringNodesWeights[i] =
             (int *)malloc(neighboursCount[i] * sizeof(int));
         indexeForNode[i] = 0;
-        numEdgesOut = numEdgesOut + neighboursCount[i];
+        numEdgesOut += neighboursCount[i];
     }
 
+    // Read the edges
     for (int i = 0; i < numEdgesOut; i++)
     {
-        int source;
-        int dest;
-        int weight;
-        fscanf(file, "e %d %d %d\n", &source, &dest, &weight);
+        int source, dest, weight;
+        fread(&source, sizeof(int), 1, file);
+        fread(&dest, sizeof(int), 1, file);
+        fread(&weight, sizeof(int), 1, file);
+
         neighbouringNodes[source][indexeForNode[source]] = dest;
         neighbouringNodesWeights[source][indexeForNode[source]] = weight;
         indexeForNode[source]++;
     }
+
+    // Copy the data to device
     for (int i = 0; i < *n; i++)
     {
         cudaMemcpy(d_neighbouringNodes[i], neighbouringNodes[i],
@@ -99,8 +110,19 @@ void readSourceGraphFromFileToDevice(const char *filename,
                    neighboursCount[i] * sizeof(int), cudaMemcpyHostToDevice);
     }
 
+    // Free temporary allocations
+    free(indexeForNode);
+    for (int i = 0; i < *n; i++)
+    {
+        free(neighbouringNodes[i]);
+        free(neighbouringNodesWeights[i]);
+    }
+    free(neighbouringNodes);
+    free(neighbouringNodesWeights);
+
     fclose(file);
 }
+
 double gettime(void)
 {
 #ifdef _WIN32
@@ -317,7 +339,6 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
     int threadsPerBlock = 1024;
     int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
     // Call the function to copy the SourceGraph to the GPU
-
     BFOutput *result = initBFOutput(startNode, size, (*edgesCount));
 
     dim3 gdim(blocksPerGrid);
@@ -333,7 +354,6 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
 
     for (int iter = 0; iter < size; iter++)
     {
-
         for (int source = 0; source < (*n); ++source)
         {
             if (wasUpdatedLastIter[source])
@@ -419,7 +439,10 @@ void writeResult(BFOutput *out, const char *filename, bool writeAll)
 
 int main(int argc, char **argv)
 {
-    BFOutput *result = bellmanFordCuda("../../data/graph_no_cycle_5.txt", 0);
+    char filename[50];
+    int size = 5;
+    snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.txt", size);
+    BFOutput *result = bellmanFordCuda(filename, 0);
     writeResult(result, "../../results/cuda/graph_no_cycle_5.txt", true);
 
     result = bellmanFordCuda("../../data/graph_cycle_5.txt", 0);

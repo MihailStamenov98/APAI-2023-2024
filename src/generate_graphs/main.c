@@ -8,9 +8,9 @@
 int main()
 {
 
-    for (int i = 3; i < 13; i++)
+    /*for (int i = 3; i < 13; i++)
     {
-        int size = (int)pow(2, i);
+        int size = 5;
 
         DestGraph *destGNoCycle = createGraphNoNegativeCycle(size, size - 1);
         char filenameNoCycle[50];
@@ -23,6 +23,11 @@ int main()
         snprintf(filenameCycle, sizeof(filenameCycle), "../../data/graph_cycle_%d.txt", size);
         writeGraphToFile(destGCycle, filenameCycle);
         freeDestGraph(destGCycle);
-    }
+        break;
+    }*/
+    char filenameNoCycle[50];
+    snprintf(filenameNoCycle, sizeof(filenameNoCycle), "../../data/graph_no_cycle_%d.txt", 5);
+    SourceGraph *g = readSourceGraphFromFile(filenameNoCycle);
+    printSourceGraph(g);
     return 0;
 }

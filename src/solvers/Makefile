@@ -2,7 +2,8 @@
 CC = gcc
 NVCC = nvcc
 CFLAGS = -Wall -Wextra -I../generate_graphs -fopenmp
-NVCCFLAGS = -I../generate_graphs
+NVCCFLAGS = 
+
 LDFLAGS = -fopenmp
 LIBS = 
 
@@ -20,8 +21,7 @@ SRC_GenerateGraph = ../generate_graphs/compare_graphs.c \
                     ../generate_graphs/graph_generator.c
 
 # CUDA source files
-SRC_CUDA = bellman_ford_cuda.cu \
-           cuda_utils.cu
+SRC_CUDA = bellman_ford_cuda.cu
 
 # Object directories
 OBJDIR_Solvers = obj
@@ -41,7 +41,7 @@ OBJ_CUDA = $(patsubst %.cu,$(OBJDIR_CUDA)/%.o,$(SRC_CUDA))
 # Target executables
 PROGRAM_DEST = bf_dest
 PROGRAM_SOURCE = bf_source
-PROGRAM_CUDA = cuda_prog
+PROGRAM_CUDA = bf_cuda
 
 # Check for operating system
 ifeq ($(OS),Windows_NT)
@@ -77,13 +77,13 @@ $(PROGRAM_SOURCE): $(OBJ_source) $(OBJ_Generators)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 # Build the CUDA executable
-$(PROGRAM_CUDA): $(OBJ_CUDA) $(OBJ_Generators)
+$(PROGRAM_CUDA): $(OBJ_CUDA)
 	$(NVCC) $(NVCCFLAGS) -o $@ $^ 
 
 # Compile source files in folder A to object files in OBJDIR_Solvers
 $(OBJDIR_Solvers)/%.o: %.c | $(OBJDIR_Solvers)
 	$(MKDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ 
 
 # Compile source files in folder B to object files in OBJDIR_Generators
 $(OBJDIR_Generators)/%.o: ../generate_graphs/%.c | $(OBJDIR_Generators)
@@ -93,7 +93,7 @@ $(OBJDIR_Generators)/%.o: ../generate_graphs/%.c | $(OBJDIR_Generators)
 # Compile CUDA files to object files in OBJDIR_CUDA
 $(OBJDIR_CUDA)/%.o: %.cu | $(OBJDIR_CUDA)
 	$(MKDIR)
-	$(NVCC) $(NVCCFLAGS) -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) -c $< -o $@ 
 
 # Create the object directories if they don't exist
 $(OBJDIR_Solvers) $(OBJDIR_Generators) $(OBJDIR_CUDA):
@@ -103,12 +103,14 @@ $(OBJDIR_Solvers) $(OBJDIR_Generators) $(OBJDIR_CUDA):
 clean:
 ifeq ($(OS),Windows_NT)
 	$(RM) $(OBJDIR_Solvers)\*.o $(OBJDIR_Generators)\*.o $(OBJDIR_CUDA)\*.o 2>nul
-	$(RM) $(PROGRAM_DEST) $(PROGRAM_SOURCE) $(PROGRAM_CUDA) 2>nul
+	$(RM) $(PROGRAM_DEST).exe $(PROGRAM_SOURCE).exe $(PROGRAM_CUDA).exe 2>nul
+	$(RM) *.exp *.lib 2>nul
 	$(RMDIR) /q /s $(OBJDIR_Solvers) 2>nul
 	$(RMDIR) /q /s $(OBJDIR_Generators) 2>nul
 	$(RMDIR) /q /s $(OBJDIR_CUDA) 2>nul
 else
 	$(RM) $(OBJDIR_Solvers)/*.o $(OBJDIR_Generators)/*.o $(OBJDIR_CUDA)/*.o 2> /dev/null
 	$(RM) $(PROGRAM_DEST) $(PROGRAM_SOURCE) $(PROGRAM_CUDA) 2> /dev/null
+	$(RM) *.exp *.lib 2> /dev/null
 	$(RMDIR) $(OBJDIR_Solvers) $(OBJDIR_Generators) $(OBJDIR_CUDA) 2> /dev/null || true
 endif

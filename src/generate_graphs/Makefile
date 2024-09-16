@@ -37,7 +37,7 @@ all: $(TARGET)
 
 # Link object files into the final executable
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $(OBJ) -lm
 
 # Compile each .c file into .o object files in the OBJDIR directory
 $(OBJDIR)/%.o: %.c

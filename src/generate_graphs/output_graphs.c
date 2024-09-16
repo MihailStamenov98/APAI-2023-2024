@@ -5,6 +5,8 @@ void printSourceGraph(SourceGraph *g)
     for (int i = 0; i < (*g).numNodes; ++i)
     {
         printf("Node %d\n", i);
+        printf("Out edges %d\n", g->nodes[i].outNeighbours);
+        printf("In edges %d\n", g->nodes[i].inNeighbours);
         for (int j = 0; j < (*g).nodes[i].outNeighbours; ++j)
         {
             printf("Edge source: %d, dest: %d, weight: %d\n", i, (*g).nodes[i].outEdges[j].dest, (*g).nodes[i].outEdges[j].weight);

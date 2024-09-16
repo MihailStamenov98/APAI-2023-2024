@@ -1,0 +1,18 @@
+Node 0
+Edge source: 0, dest: 1, weight: 7
+Edge source: 0, dest: 2, weight: 18
+Edge source: 0, dest: 3, weight: 0
+Edge source: 0, dest: 4, weight: 7
+Node 1
+Edge source: 1, dest: 0, weight: 16
+Edge source: 1, dest: 2, weight: 5
+Node 2
+Edge source: 2, dest: 0, weight: 13
+Edge source: 2, dest: 3, weight: 8
+Node 3
+Edge source: 3, dest: 1, weight: 5
+Edge source: 3, dest: 2, weight: 9
+Node 4
+Edge source: 4, dest: 1, weight: 20
+Edge source: 4, dest: 2, weight: 6
+Edge source: 4, dest: 3, weight: 8 

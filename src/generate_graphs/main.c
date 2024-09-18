@@ -39,7 +39,7 @@ int main()
     if (file == NULL)
     {
         printf("Error opening file!\n");
-        return;
+        return 0;
     }
 
     for (int i = 0; i < 18; i++)

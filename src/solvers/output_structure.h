@@ -21,5 +21,7 @@ void writeResult(BFOutput *out, const char *filename, bool writeAll);
 void printResult(BFOutput *out, bool writeAll);
 void freeBFOutput(BFOutput *output);
 BFOutput *initBFOutput(int startNode, int size, int edgesCount);
+int power_of_two(int n);
+
 
 #endif

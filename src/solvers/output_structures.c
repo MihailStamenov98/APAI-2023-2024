@@ -99,3 +99,8 @@ BFOutput *initBFOutput(int startNode, int size, int edgesCount)
     result->edgesCount = edgesCount;
     return result;
 }
+
+
+int power_of_two(int n) {
+    return 1 << n;  // This computes 2^n
+}

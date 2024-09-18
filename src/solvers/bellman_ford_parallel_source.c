@@ -116,29 +116,29 @@ int main()
             maxNumEdges = maxNumEdges - 1;
         }
         printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
-        
+
         char filename[50];
         snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        SourceGraph *readGraph = readDestGraphFromFile(filename);
+        SourceGraph *readGraph = readSourceGraphFromFile(filename);
         BFOutput *result = bellmanFordSource(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_source/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeResult(result, filename, true);
-        hasCicle[2*i] = result->hasNegativeCycle;
-        times[2*i] = result->timeInSeconds;
+        hasCicle[2 * i] = result->hasNegativeCycle;
+        times[2 * i] = result->timeInSeconds;
         freeBFOutput(result);
         freeSourceGraph(readGraph);
 
         snprintf(filename, sizeof(filename), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        readGraph = readDestGraphFromFile(filename);
+        readGraph = readSourceGraphFromFile(filename);
         result = bellmanFordSource(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_source/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeResult(result, filename, true);
-        hasCicle[2*i+1] = result->hasNegativeCycle;
-        times[2*i+1] = result->timeInSeconds;
+        hasCicle[2 * i + 1] = result->hasNegativeCycle;
+        times[2 * i + 1] = result->timeInSeconds;
         freeBFOutput(result);
         freeSourceGraph(readGraph);
     }
-    FILE *fileTimes = fopen("../../results/omp_source/times.txt", "w"); // Open file in write mode
+    FILE *fileTimes = fopen("../../results/omp_source/times.txt", "w");        // Open file in write mode
     FILE *fileHasCicle = fopen("../../results/omp_source/has_cicle.txt", "w"); // Open file in write mode
 
     if (fileTimes == NULL)
@@ -154,9 +154,8 @@ int main()
 
     for (int i = 0; i < 18; i++)
     {
-        fprintf(fileTimes, "%f\n", times[i]); // Write each integer to a new line
+        fprintf(fileTimes, "%f\n", times[i]);       // Write each integer to a new line
         fprintf(fileHasCicle, "%d\n", hasCicle[i]); // Write each integer to a new line
-
     }
 
     fclose(fileTimes);

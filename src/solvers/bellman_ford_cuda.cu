@@ -451,7 +451,7 @@ int main(int argc, char **argv)
     
     int numnodes, maxNumEdges;
     bool hasCicle[18];
-    double time[18];
+    double times[18];
 
     for (int i = 0; i < 9; i++)
     {
@@ -467,8 +467,8 @@ int main(int argc, char **argv)
         BFOutput *result = bellmanFordCuda(filename, 0);
         snprintf(filename, sizeof(filename), "../../results/cuda/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeResult(result, filename, true);
-        hasCicle[2*i] = result.hasNegativeCycle;
-        times[2*i] = result.timeInSeconds;
+        hasCicle[2*i] = result->hasNegativeCycle;
+        times[2*i] = result->timeInSeconds;
         freeBFOutput(result);
 
 
@@ -476,8 +476,8 @@ int main(int argc, char **argv)
         result = bellmanFordCuda("../../data/graph_cycle_5.txt", 0);
         snprintf(filename, sizeof(filename), "../../results/cuda/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeResult(result, filename, true);
-        hasCicle[2*i+1] = result.hasNegativeCycle;
-        times[2*i+1] = result.timeInSeconds;
+        hasCicle[2*i+1] = result->hasNegativeCycle;
+        times[2*i+1] = result->timeInSeconds;
         freeBFOutput(result);
     }
     FILE *fileTimes = fopen("../../results/cuda/times.txt", "w"); // Open file in write mode

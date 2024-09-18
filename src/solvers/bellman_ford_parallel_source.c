@@ -106,7 +106,7 @@ int main()
 {
     int numnodes, maxNumEdges;
     bool hasCicle[18];
-    double time[18];
+    double times[18];
 
     for (int i = 0; i < 9; i++)
     {
@@ -123,18 +123,18 @@ int main()
         BFOutput *result = bellmanFordSource(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_source/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeResult(result, filename, true);
-        hasCicle[2*i] = result.hasNegativeCycle;
-        times[2*i] = result.timeInSeconds;
+        hasCicle[2*i] = result->hasNegativeCycle;
+        times[2*i] = result->timeInSeconds;
         freeBFOutput(result);
         freeSourceGraph(readGraph);
 
         snprintf(filename, sizeof(filename), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         readGraph = readDestGraphFromFile(filename);
-        result = bellmanFordSource(power_of_two(i), readGraphNegativeCycle, 0);
+        result = bellmanFordSource(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_source/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        writeResult(resultCycle, filename, true);
-        hasCicle[2*i+1] = result.hasNegativeCycle;
-        times[2*i+1] = result.timeInSeconds;
+        writeResult(result, filename, true);
+        hasCicle[2*i+1] = result->hasNegativeCycle;
+        times[2*i+1] = result->timeInSeconds;
         freeBFOutput(result);
         freeSourceGraph(readGraph);
     }

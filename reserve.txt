@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/ bin / bash
 #SBATCH --job-name=compile_and_run_solutions
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mihail.stamenov@studio.unibo.it
@@ -9,7 +9,7 @@
 #SBATCH --gres=gpu:1
 
 module load gcc
-module load nvcc
+module load cuda
 
 cd src/solvers/
 

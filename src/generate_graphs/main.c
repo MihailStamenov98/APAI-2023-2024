@@ -4,12 +4,7 @@
 #include "read_graphs.h"
 #include "graph_generator.h"
 #include <math.h>
-void get_numbers(int index, int *num1, int *num2)
-{
-    // Calculate the powers of 2 according to index
-    *num1 = 512 << ((index + 1) / 2); // First number doubles every 2 indices
-    *num2 = 512 << (index / 2);       // Second number doubles every 2 indices starting at index 2
-}
+
 int main()
 {
     int numnodes, maxNumEdges;
@@ -23,17 +18,19 @@ int main()
         }
         printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
         DestGraph *destGNoCycle = createGraphNoNegativeCycle(numnodes, maxNumEdges);
+        edgesCount[2 * i] = (destGNoCycle->numEdges);
         char filenameNoCycle[50];
-        snprintf(filenameNoCycle, sizeof(filenameNoCycle), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, destGNoCycle->numEdges);
+        snprintf(filenameNoCycle, sizeof(filenameNoCycle), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeGraphToFile(destGNoCycle, filenameNoCycle);
         freeDestGraph(destGNoCycle);
-        edgesCount[2 * i] = destGNoCycle->numEdges;
+
+
         DestGraph *destGCycle = createGraphWithNegativeCycle(numnodes, maxNumEdges);
+        edgesCount[2 * i + 1] = (destGCycle->numEdges);
         char filenameCycle[50];
-        snprintf(filenameCycle, sizeof(filenameCycle), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, destGCycle->numEdges);
+        snprintf(filenameCycle, sizeof(filenameCycle), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeGraphToFile(destGCycle, filenameCycle);
         freeDestGraph(destGCycle);
-        edgesCount[2 * i + 1] = destGCycle->numEdges;
     }
     FILE *file = fopen("../../data/stats.txt", "w"); // Open file in write mode
     if (file == NULL)

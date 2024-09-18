@@ -448,5 +448,59 @@ int main(int argc, char **argv)
     result = bellmanFordCuda("../../data/graph_cycle_5.txt", 0);
     writeResult(result, "../../results/cuda/graph_cycle_5.txt", true);
     freeBFOutput(result);
-    return 0;
+    
+    int numnodes, maxNumEdges;
+    bool hasCicle[18];
+    double time[18];
+
+    for (int i = 0; i < 9; i++)
+    {
+        get_numbers(i, &numnodes, &maxNumEdges);
+        if (maxNumEdges == numnodes)
+        {
+            maxNumEdges = maxNumEdges - 1;
+        }
+        printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
+        
+        char filename[50];
+        snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        BFOutput *result = bellmanFordCuda(filename, 0);
+        snprintf(filename, sizeof(filename), "../../results/cuda/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        writeResult(result, filename, true);
+        hasCicle[2*i] = result.hasNegativeCycle;
+        times[2*i] = result.timeInSeconds;
+        freeBFOutput(result);
+
+
+        snprintf(filename, sizeof(filename), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        result = bellmanFordCuda("../../data/graph_cycle_5.txt", 0);
+        snprintf(filename, sizeof(filename), "../../results/cuda/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        writeResult(result, filename, true);
+        hasCicle[2*i+1] = result.hasNegativeCycle;
+        times[2*i+1] = result.timeInSeconds;
+        freeBFOutput(result);
+    }
+    FILE *fileTimes = fopen("../../results/cuda/times.txt", "w"); // Open file in write mode
+    FILE *fileHasCicle = fopen("../../results/cuda/has_cicle.txt", "w"); // Open file in write mode
+
+    if (fileTimes == NULL)
+    {
+        printf("Error opening file times.txt!\n");
+        return 0;
+    }
+    if (fileHasCicle == NULL)
+    {
+        printf("Error opening file has_cicle.txt!\n");
+        return 0;
+    }
+
+    for (int i = 0; i < 18; i++)
+    {
+        fprintf(fileTimes, "%f\n", times[i]); // Write each integer to a new line
+        fprintf(fileHasCicle, "%d\n", hasCicle[i]); // Write each integer to a new line
+
+    }
+
+    fclose(fileTimes);
+    fclose(fileHasCicle);
 }

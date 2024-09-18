@@ -105,7 +105,9 @@ BFOutput *bellmanFord(int p, DestGraph *g, int startNode)
 int main()
 {
     int numnodes, maxNumEdges;
-    int edgesCount[18];
+    bool hasCicle[18];
+    double time[18];
+
     for (int i = 0; i < 9; i++)
     {
         get_numbers(i, &numnodes, &maxNumEdges);
@@ -114,43 +116,51 @@ int main()
             maxNumEdges = maxNumEdges - 1;
         }
         printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
-        DestGraph *destGNoCycle = createGraphNoNegativeCycle(numnodes, maxNumEdges);
-        char filenameNoCycle[50];
-        snprintf(filenameNoCycle, sizeof(filenameNoCycle), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, destGNoCycle->numEdges);
-        writeGraphToFile(destGNoCycle, filenameNoCycle);
-        freeDestGraph(destGNoCycle);
-        edgesCount[2 * i] = destGNoCycle->numEdges;
-        DestGraph *destGCycle = createGraphWithNegativeCycle(numnodes, maxNumEdges);
-        char filenameCycle[50];
-        snprintf(filenameCycle, sizeof(filenameCycle), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, destGCycle->numEdges);
-        writeGraphToFile(destGCycle, filenameCycle);
-        freeDestGraph(destGCycle);
-        edgesCount[2 * i + 1] = destGCycle->numEdges;
+        
+        char filename[50];
+        snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        DestGraph *readGraph = readDestGraphFromFile(filename);
+        BFOutput *result = bellmanFord(power_of_two(i), readGraph, 0);
+        snprintf(filename, sizeof(filename), "../../results/omp_dest/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        writeResult(result, filename, true);
+        hasCicle[2*i] = result.hasNegativeCycle;
+        times[2*i] = result.timeInSeconds;
+        freeBFOutput(result);
+        freeDestGraph(readGraph);
+
+        snprintf(filename, sizeof(filename), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        readGraph = readDestGraphFromFile(filename);
+        result = bellmanFord(power_of_two(i), readGraphNegativeCycle, 0);
+        snprintf(filename, sizeof(filename), "../../results/omp_dest/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        writeResult(resultCycle, filename, true);
+        hasCicle[2*i+1] = result.hasNegativeCycle;
+        times[2*i+1] = result.timeInSeconds;
+        freeBFOutput(result);
+        freeDestGraph(readGraph);
     }
-    FILE *file = fopen("../../data/stats.txt", "w"); // Open file in write mode
-    if (file == NULL)
+    FILE *fileTimes = fopen("../../results/omp_dest/times.txt", "w"); // Open file in write mode
+    FILE *fileHasCicle = fopen("../../results/omp_dest/has_cicle.txt", "w"); // Open file in write mode
+
+    if (fileTimes == NULL)
     {
-        printf("Error opening file!\n");
+        printf("Error opening file times.txt!\n");
+        return 0;
+    }
+    if (fileHasCicle == NULL)
+    {
+        printf("Error opening file has_cicle.txt!\n");
         return 0;
     }
 
     for (int i = 0; i < 18; i++)
     {
-        fprintf(file, "%d\n", edgesCount[i]); // Write each integer to a new line
+        fprintf(fileTimes, "%f\n", times[i]); // Write each integer to a new line
+        fprintf(fileHasCicle, "%d\n", hasCicle[i]); // Write each integer to a new line
+
     }
 
-    fclose(file);
-    
-    DestGraph *readGraph = readDestGraphFromFile("../../data/graph_no_cycle_5.txt");
-    BFOutput *result = bellmanFord(2, readGraph, 0);
-    printf("---------------- %d\n", (*result).hasNegativeCycle);
-    writeResult(result, "../../results/omp_dest/graph_no_cycle_5.txt", true);
-    DestGraph *readGraphNegativeCycle = readDestGraphFromFile("../../data/graph_cycle_5.txt");
-    BFOutput *resultCycle = bellmanFord(2, readGraphNegativeCycle, 0);
-    writeResult(resultCycle, "../../results/omp_dest/graph_cycle_5.txt", true);
-    freeBFOutput(result);
-    freeBFOutput(resultCycle);
-    freeDestGraph(readGraph);
-    freeDestGraph(readGraphNegativeCycle);
+    fclose(fileTimes);
+    fclose(fileHasCicle);
+
     return 0;
 }

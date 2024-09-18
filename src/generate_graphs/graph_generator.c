@@ -12,7 +12,7 @@ DestGraph *createGraphNoNegativeCycle(int numNodes, int numNeighbours)
     g->numNodes = numNodes;
     g->numEdges = 0;
     printf("numNodes = %d\n", numNodes);
-    (*g).nodes = (DestNode *)malloc(numNodes * sizeof(DestNode));
+    g->nodes = (DestNode *)malloc(numNodes * sizeof(DestNode));
     int *sourceForNodes = (int *)malloc(numNodes * sizeof(int));
 
     for (int i = 0; i < (*g).numNodes; i++)

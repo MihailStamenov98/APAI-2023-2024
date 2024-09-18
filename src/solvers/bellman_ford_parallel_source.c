@@ -104,19 +104,63 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
 
 int main()
 {
-    SourceGraph *readGraph =
-        readSourceGraphFromFile("../../data/graph_no_cycle_5.txt");
-    BFOutput *result = bellmanFordSource(2, readGraph, 0);
-    printf("---------------- %d\n", (*result).hasNegativeCycle);
-    writeResult(result, "../../results/omp_source/graph_no_cycle_5.txt", true);
+    int numnodes, maxNumEdges;
+    bool hasCicle[18];
+    double time[18];
 
-    SourceGraph *readGraphNegativeCycle =
-        readSourceGraphFromFile("../../data/graph_cycle_5.txt");
-    BFOutput *resultCycle = bellmanFordSource(2, readGraphNegativeCycle, 0);
-    writeResult(resultCycle, "../../results/omp_source/graph_cycle_5.txt", true);
-    freeBFOutput(result);
-    freeBFOutput(resultCycle);
-    freeSourceGraph(readGraph);
-    freeSourceGraph(readGraphNegativeCycle);
+    for (int i = 0; i < 9; i++)
+    {
+        get_numbers(i, &numnodes, &maxNumEdges);
+        if (maxNumEdges == numnodes)
+        {
+            maxNumEdges = maxNumEdges - 1;
+        }
+        printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
+        
+        char filename[50];
+        snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        SourceGraph *readGraph = readDestGraphFromFile(filename);
+        BFOutput *result = bellmanFordSource(power_of_two(i), readGraph, 0);
+        snprintf(filename, sizeof(filename), "../../results/omp_source/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        writeResult(result, filename, true);
+        hasCicle[2*i] = result.hasNegativeCycle;
+        times[2*i] = result.timeInSeconds;
+        freeBFOutput(result);
+        freeSourceGraph(readGraph);
+
+        snprintf(filename, sizeof(filename), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        readGraph = readDestGraphFromFile(filename);
+        result = bellmanFordSource(power_of_two(i), readGraphNegativeCycle, 0);
+        snprintf(filename, sizeof(filename), "../../results/omp_source/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        writeResult(resultCycle, filename, true);
+        hasCicle[2*i+1] = result.hasNegativeCycle;
+        times[2*i+1] = result.timeInSeconds;
+        freeBFOutput(result);
+        freeSourceGraph(readGraph);
+    }
+    FILE *fileTimes = fopen("../../results/omp_source/times.txt", "w"); // Open file in write mode
+    FILE *fileHasCicle = fopen("../../results/omp_source/has_cicle.txt", "w"); // Open file in write mode
+
+    if (fileTimes == NULL)
+    {
+        printf("Error opening file times.txt!\n");
+        return 0;
+    }
+    if (fileHasCicle == NULL)
+    {
+        printf("Error opening file has_cicle.txt!\n");
+        return 0;
+    }
+
+    for (int i = 0; i < 18; i++)
+    {
+        fprintf(fileTimes, "%f\n", times[i]); // Write each integer to a new line
+        fprintf(fileHasCicle, "%d\n", hasCicle[i]); // Write each integer to a new line
+
+    }
+
+    fclose(fileTimes);
+    fclose(fileHasCicle);
+
     return 0;
 }

@@ -143,3 +143,9 @@ int **readGraphToMatrix(const char *filename, int *numNodes)
     fclose(file);
     return matrix;
 }
+void get_numbers(int index, int *num1, int *num2)
+{
+    // Calculate the powers of 2 according to index
+    *num1 = 512 << ((index + 1) / 2); // First number doubles every 2 indices
+    *num2 = 512 << (index / 2);       // Second number doubles every 2 indices starting at index 2
+}

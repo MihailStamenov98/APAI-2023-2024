@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <windows.h> // For LARGE_INTEGER and QueryPerformance functions on Windows
 
 #define INF 1000000
 

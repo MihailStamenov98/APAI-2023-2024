@@ -54,18 +54,28 @@ DestGraph *createGraphWithNegativeCycle(int numNodes, int numNeighbours)
 {
     DestGraph *g = createGraphNoNegativeCycle(numNodes, numNeighbours);
     // Introduce a negative cycle
-    int cycleLen = randInt(3, numNodes); // Create a small cycle of 3-5 nodes
-    int cycleStart = randInt(0, numNodes - cycleLen);
-    for (int i = 0; i < cycleLen; i++)
+    int num_cycles = randInt(1, 100);
+    for (int cycle = 0; cycle < num_cycles; cycle++)
     {
-        int currNodeInNeighbours = (*g).nodes[cycleStart + i].inNeighbours;
-        int sourceIndex = randInt(0, currNodeInNeighbours - 1);
-        int oldEdgeNodeID = (*g).nodes[cycleStart + i].inEdges[sourceIndex].source;
-        DestEdge newEdge = (DestEdge){cycleStart + (i + 1) % cycleLen, -1};
-        g->nodes[cycleStart + i].inEdges[sourceIndex] = newEdge;
-        g->nodes[oldEdgeNodeID].outNeighbours--;
-        g->nodes[newEdge.source].outNeighbours++;
+        int cycleLen = randInt(3, numNodes); // Create a small cycle of 3-5 nodes
+        int cycleStart = randInt(0, numNodes - cycleLen);
+        int *sourceForNodes = (int *)malloc(cycleLen * sizeof(int));
+for (int i = 0; i < cycleLen; i++)
+        {
+            
+        }
+        for (int i = 0; i < cycleLen; i++)
+        {
+            int currNodeInNeighbours = (*g).nodes[cycleStart + i].inNeighbours;
+            int sourceIndex = randInt(0, currNodeInNeighbours - 1);
+            int oldEdgeNodeID = (*g).nodes[cycleStart + i].inEdges[sourceIndex].source;
+            DestEdge newEdge = (DestEdge){cycleStart + (i + 1) % cycleLen, -1};
+            g->nodes[cycleStart + i].inEdges[sourceIndex] = newEdge;
+            g->nodes[oldEdgeNodeID].outNeighbours--;
+            g->nodes[newEdge.source].outNeighbours++;
+        }
     }
+    
 
     return g;
 }

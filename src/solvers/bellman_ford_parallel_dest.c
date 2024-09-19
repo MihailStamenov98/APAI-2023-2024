@@ -116,15 +116,17 @@ int main()
             maxNumEdges = maxNumEdges - 1;
         }
         printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
-        
-        char filename[50];
+
+        char filename[70];
         snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         DestGraph *readGraph = readDestGraphFromFile(filename);
         BFOutput *result = bellmanFord(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_dest/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeResult(result, filename, true);
-        hasCicle[2*i] = result->hasNegativeCycle;
-        times[2*i] = result->timeInSeconds;
+        hasCicle[2 * i] = result->hasNegativeCycle;
+        times[2 * i] = result->timeInSeconds;
+        printf("First graph should not have cycle for no cycle: %d\n", result->hasNegativeCycle);
+        printf("Time for no cycle: %f\n", result->timeInSeconds);
         freeBFOutput(result);
         freeDestGraph(readGraph);
 
@@ -133,12 +135,14 @@ int main()
         result = bellmanFord(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_dest/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeResult(result, filename, true);
-        hasCicle[2*i+1] = result->hasNegativeCycle;
-        times[2*i+1] = result->timeInSeconds;
+        hasCicle[2 * i + 1] = result->hasNegativeCycle;
+        times[2 * i + 1] = result->timeInSeconds;
+        printf("Second graph should have cycle for no cycle: %d\n", result->hasNegativeCycle);
+        printf("Time for cycle: %f\n", result->timeInSeconds);
         freeBFOutput(result);
         freeDestGraph(readGraph);
     }
-    FILE *fileTimes = fopen("../../results/omp_dest/times.txt", "w"); // Open file in write mode
+    FILE *fileTimes = fopen("../../results/omp_dest/times.txt", "w");        // Open file in write mode
     FILE *fileHasCicle = fopen("../../results/omp_dest/has_cicle.txt", "w"); // Open file in write mode
 
     if (fileTimes == NULL)
@@ -154,13 +158,12 @@ int main()
 
     for (int i = 0; i < 18; i++)
     {
-        fprintf(fileTimes, "%f\n", times[i]); // Write each integer to a new line
+        fprintf(fileTimes, "%f\n", times[i]);       // Write each integer to a new line
         fprintf(fileHasCicle, "%d\n", hasCicle[i]); // Write each integer to a new line
-
     }
 
     fclose(fileTimes);
     fclose(fileHasCicle);
-
+    printf("OMP Dest ended\n");
     return 0;
 }

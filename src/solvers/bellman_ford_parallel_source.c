@@ -117,7 +117,7 @@ int main()
         }
         printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
 
-        char filename[50];
+        char filename[70];
         snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         SourceGraph *readGraph = readSourceGraphFromFile(filename);
         BFOutput *result = bellmanFordSource(power_of_two(i), readGraph, 0);
@@ -125,6 +125,8 @@ int main()
         writeResult(result, filename, true);
         hasCicle[2 * i] = result->hasNegativeCycle;
         times[2 * i] = result->timeInSeconds;
+        printf("First graph should not have cycle for no cycle: %d\n", result->hasNegativeCycle);
+        printf("Time for no cycle: %f\n", result->timeInSeconds);
         freeBFOutput(result);
         freeSourceGraph(readGraph);
 
@@ -135,6 +137,8 @@ int main()
         writeResult(result, filename, true);
         hasCicle[2 * i + 1] = result->hasNegativeCycle;
         times[2 * i + 1] = result->timeInSeconds;
+        printf("Second graph should have cycle for no cycle: %d\n", result->hasNegativeCycle);
+        printf("Time for cycle: %f\n", result->timeInSeconds);
         freeBFOutput(result);
         freeSourceGraph(readGraph);
     }
@@ -160,6 +164,6 @@ int main()
 
     fclose(fileTimes);
     fclose(fileHasCicle);
-
+    printf("OMP Source finished\n");
     return 0;
 }

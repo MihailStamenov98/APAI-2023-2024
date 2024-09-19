@@ -61,7 +61,6 @@ DestGraph *createGraphWithNegativeCycle(int numNodes, int numNeighbours)
     DestGraph *g = createGraphNoNegativeCycle(numNodes, numNeighbours);
     // Introduce a negative cycle
     int num_cycles = randInt(1, 100);
-    printf("num_cycles = %d\n", num_cycles);
     for (int cycle = 0; cycle < num_cycles; cycle++)
     {
         int cycleLen = randInt(3, numNodes); // Create a small cycle of 3-5 nodes
@@ -73,13 +72,11 @@ DestGraph *createGraphWithNegativeCycle(int numNodes, int numNeighbours)
             sourceForNodes[i] = cycleStart + i;
         }
         int currNodeInCycle = cycleStart;
-        printf("cycleStart = %d, cycleLen = %d\n", cycleStart, cycleLen);
 
         for (int i = 0; i < cycleLen; i++)
         {
             int inNeighboursCount = g->nodes[currNodeInCycle].inNeighbours;
             int source = getNumber(currNodeInCycle, &lastNodeIndex, sourceForNodes);
-            printf("currNodeInCycle = %d, source = %d\n", currNodeInCycle, source);
 
             int sourceIndex = randInt(0, inNeighboursCount - 1);
             int oldEdgeNodeID = (*g).nodes[currNodeInCycle].inEdges[sourceIndex].source;

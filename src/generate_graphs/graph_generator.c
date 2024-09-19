@@ -11,13 +11,13 @@ int getNumber(int i, int *lastNodeIndex, int *sourceForNodes)
     int index;
     while (source == i)
     {
-        index = randInt(0, lastNodeIndex);
+        index = randInt(0, *lastNodeIndex);
         source = sourceForNodes[index];
     }
     int temp = sourceForNodes[*lastNodeIndex];
     sourceForNodes[*lastNodeIndex] = sourceForNodes[index];
     sourceForNodes[index] = temp;
-    *lastNodeIndex--;
+    (*lastNodeIndex)--;
     return source;
 }
 
@@ -61,6 +61,7 @@ DestGraph *createGraphWithNegativeCycle(int numNodes, int numNeighbours)
     DestGraph *g = createGraphNoNegativeCycle(numNodes, numNeighbours);
     // Introduce a negative cycle
     int num_cycles = randInt(1, 100);
+    printf("num_cycles = %d\n", num_cycles);
     for (int cycle = 0; cycle < num_cycles; cycle++)
     {
         int cycleLen = randInt(3, numNodes); // Create a small cycle of 3-5 nodes
@@ -71,19 +72,25 @@ DestGraph *createGraphWithNegativeCycle(int numNodes, int numNeighbours)
         {
             sourceForNodes[i] = cycleStart + i;
         }
-        int currNodeInNeighbours = cycleStart;
+        int currNodeInCycle = cycleStart;
+        printf("cycleStart = %d, cycleLen = %d\n", cycleStart, cycleLen);
+
         for (int i = 0; i < cycleLen; i++)
         {
-            int source = getNumber(currNodeInNeighbours, &lastNodeIndex, sourceForNodes);
-            int sourceIndex = randInt(0, currNodeInNeighbours - 1);
-            int oldEdgeNodeID = (*g).nodes[cycleStart + i].inEdges[sourceIndex].source;
+            int inNeighboursCount = g->nodes[currNodeInCycle].inNeighbours;
+            int source = getNumber(currNodeInCycle, &lastNodeIndex, sourceForNodes);
+            printf("currNodeInCycle = %d, source = %d\n", currNodeInCycle, source);
+
+            int sourceIndex = randInt(0, inNeighboursCount - 1);
+            int oldEdgeNodeID = (*g).nodes[currNodeInCycle].inEdges[sourceIndex].source;
             DestEdge newEdge = (DestEdge){source, -1};
-            g->nodes[cycleStart + i].inEdges[sourceIndex] = newEdge;
+            g->nodes[currNodeInCycle].inEdges[sourceIndex] = newEdge;
             g->nodes[oldEdgeNodeID].outNeighbours--;
             g->nodes[newEdge.source].outNeighbours++;
-            currNodeInNeighbours = source;
+            currNodeInCycle = source;
         }
     }
+    printf("Negative cycle added to graph");
 
     return g;
 }

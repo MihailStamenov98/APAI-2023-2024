@@ -4,14 +4,20 @@
 #SBATCH --mail-user=mihail.stamenov@studio.unibo.it
 #SBATCH --output=output.txt
 #SBATCH --error=errors.txt
-#SBATCH --time=01:00:00
+#SBATCH --time=08:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 
-module load gcc
-module load nvcc
-
 cd src/solvers/
+
+echo "Compiling CUDA solution..."
+nvcc -o bf_cuda ./bellman_ford_cuda.cu
+if [ $? -eq 0 ];then 
+    echo "Running bf_cuda..."./ bf_cuda 
+else 
+    echo "Failed to compile bf_cuda." 
+    exit 1 
+fi
 
 echo "Compiling dest solution..."
 make dest
@@ -33,10 +39,6 @@ else
     exit 1
 fi
 
-echo "Compiling CUDA solution..."
-nvcc -o bf_cuda ./bellman_ford_cuda.cu
-if [ $? -eq 0 ];
-then echo "Running bf_cuda..."./ bf_cuda else echo
-    "Failed to compile bf_cuda." exit 1 fi
 
-        echo "All tasks completed successfully."
+
+echo "All tasks completed successfully."

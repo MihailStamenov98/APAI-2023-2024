@@ -4,16 +4,30 @@
 #SBATCH --mail-user=mihail.stamenov@studio.unibo.it
 #SBATCH --output=output.txt
 #SBATCH --error=errors.txt
-#SBATCH --time=08:00:00
+#SBATCH --time=12:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 
-cd src/solvers/
+
+echo "Generate graphs..."
+cd src/generate_graphs
+make
+if [ $? -eq 0 ]; then
+    echo "Creating graphs..."
+    ./generate_graphs
+else
+    echo "Failed to compile bf_dest."
+    exit 1
+fi
+
+
+cd ../solvers/
 
 echo "Compiling CUDA solution..."
 nvcc -o bf_cuda ./bellman_ford_cuda.cu
 if [ $? -eq 0 ];then 
-    echo "Running bf_cuda..."./ bf_cuda 
+    echo "Running bf_cuda..."
+    ./ bf_cuda 
 else 
     echo "Failed to compile bf_cuda." 
     exit 1 
@@ -39,6 +53,6 @@ else
     exit 1
 fi
 
-
+wait
 
 echo "All tasks completed successfully."

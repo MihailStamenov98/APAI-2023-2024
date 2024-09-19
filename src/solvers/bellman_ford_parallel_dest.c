@@ -33,14 +33,14 @@ BFOutput *bellmanFord(int p, DestGraph *g, int startNode)
 
     // initialize distances
 #pragma omp parallel for
-    for (int i = 0; i < (*g).numNodes; i++)
+    for (int i = 0; i < g->numNodes; i++)
     {
-        (*result).dist[i] = INF;
-        (*result).predecessor[i] = -1;
+        result->dist[i] = INF;
+        result->predecessor[i] = -1;
         wasUpdatedLastIter[i] = false;
         isUpdatedThisIter[i] = false;
     }
-    (*result).dist[startNode] = 0;
+    result->dist[startNode] = 0;
     wasUpdatedLastIter[startNode] = true;
     bool has_changed = false;
     for (int iter = 0; iter < (*g).numNodes; iter++)
@@ -60,10 +60,11 @@ BFOutput *bellmanFord(int p, DestGraph *g, int startNode)
                 int source = (*g).nodes[dest].inEdges[j].source;
                 if (wasUpdatedLastIter[source])
                 {
+
                     int weight = (*g).nodes[dest].inEdges[j].weight;
                     int new_dis = (*result).dist[source] + weight;
                     // printf("source = %d, dest = %d, weight= %d, dist_dest = %d, dist_source = %d, new_weight = %d\n", source, dest, weight, result.dist[dest], result.dist[source], new_dis);
-                    if (new_dis < (*result).dist[dest])
+                    if (new_dis < result->dist[dest])
                     {
                         isUpdatedThisIter[dest] = true;
                         has_changed = true;

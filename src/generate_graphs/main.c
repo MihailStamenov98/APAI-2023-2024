@@ -9,7 +9,7 @@ int main()
 {
     int numnodes, maxNumEdges;
     int edgesCount[18];
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 9; i++)
     {
         get_numbers(i, &numnodes, &maxNumEdges);
         if (maxNumEdges == numnodes)

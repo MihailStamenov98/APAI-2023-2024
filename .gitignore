@@ -17,3 +17,6 @@
 *.dll
 
 **/.vscode/
+/data/*
+/results/*
+bf_*

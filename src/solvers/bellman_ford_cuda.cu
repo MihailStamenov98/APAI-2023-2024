@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <windows.h>
 #define INF 1000000
 
 typedef struct {
@@ -128,7 +127,7 @@ double gettime(void) {
 
 __global__ void relax_initial(int *d_dist, int *d_predecessor,
                               bool *d_hasChanged, int n, int startNode,
-                              int maxVal) {
+                              int maxVal) { 
   int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
   int i = bdim * bid + tid;
   int skip = bdim * gdim;
@@ -167,6 +166,7 @@ __global__ void bellmanFordIteration(int *weights, int *neighbours,
     int weight = weights[edgeIndex];
     int new_dist = dist[source] + weight;
     if (new_dist < dist[destination]) {
+      printf("destination = %d, old_dist = %d, new_dist = %d\n", destination, dist[destination], new_dist);
       hasChanged[destination] = true;
       dist[destination] = new_dist;
       predecessor[destination] = source;
@@ -238,6 +238,8 @@ bool reduceLargeArray(bool *d_input, int size, int blockSize) {
   size_t sharedMemorySize = blockSize * sizeof(bool);
   blockReduceOr<<<1, blockSize, sharedMemorySize>>>(d_input, d_intermediate,
                                                     size);
+  cudaDeviceSynchronize(); // wait for kernel to finish
+
 
   // Copy the final result back to the host
   cudaMemcpy(&h_result, d_intermediate, sizeof(bool), cudaMemcpyDeviceToHost);
@@ -323,34 +325,82 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode) {
   wasUpdatedLastIter[startNode] = true;
   cudaDeviceSynchronize(); // wait for kernel to finish
 
-  for (int iter = 0; iter < size; iter++) {
+  for (int iter = 0; iter < size-1; iter++) {
+    printf("Iter = %d\n", iter);
     for (int source = 0; source < (*n); ++source) {
+      printf("source = %d and was it updated last round %d\n", source, wasUpdatedLastIter[source] );
       if (wasUpdatedLastIter[source]) {
         bellmanFordIteration<<<gdim, bdim>>>(
             d_neighbouringNodesWeights[source], d_neighbouringNodes[source],
-            neighboursCount[source], d_predecessor, d_dist, d_hasChanged,
-            source);
+            neighboursCount[source], d_predecessor, d_dist, d_hasChanged, source);
+        cudaDeviceSynchronize();
+        printf("After parallel part\n");
       }
-      cudaDeviceSynchronize();
-      bool hasChange = reduceLargeArray(d_hasChanged, size, threadsPerBlock);
-      if (iter == size - 1 && hasChange) {
-        tend = gettime();
-        cudaMemcpy((*result).predecessor, d_predecessor, size * sizeof(int),
-                   cudaMemcpyDeviceToHost);
-        (*result).negativeCycleNode = source;
-        (*result).hasNegativeCycle = true;
-        (*result).timeInSeconds = tend - tstart;
+      printf("After parallel part outside if\n");
 
-        freeMem(d_dist, d_neighbouringNodes, d_neighbouringNodesWeights,
-                neighboursCount, d_predecessor, d_hasChanged, size);
-        return result;
-      }
     }
-    cudaMemcpy(wasUpdatedLastIter, d_hasChanged, size * sizeof(bool),
-               cudaMemcpyDeviceToHost);
+    printf("Here\n");
+    bool hasChange = reduceLargeArray(d_hasChanged, size, threadsPerBlock);
+    printf("For iter = %d, hasChange = %d", iter, hasChange);
+    if(!hasChange)
+    {
+      printf("In iter %d there was no change and alghorithm stops!\n", iter);
+      tend = gettime();
+      cudaMemcpy(result->dist, d_dist, size * sizeof(int),
+                 cudaMemcpyDeviceToHost);
+      result->hasNegativeCycle = false;
+      result->timeInSeconds = tend - tstart;
+      freeMem(d_dist, d_neighbouringNodes, d_neighbouringNodesWeights,
+                neighboursCount, d_predecessor, d_hasChanged, size);
+      return result;
+    }
+
+    cudaMemcpy(wasUpdatedLastIter, d_hasChanged, size * sizeof(bool), cudaMemcpyDeviceToHost);
+
+    for(int i =0; i<size; ++i) {
+      printf("%d", wasUpdatedLastIter[i])
+    }
+    printf("\n");
+
+    printf("After iter %d, wasUpdatedLastIter - %d, %d, %d, %d, %d\n", 
+            iter, 
+            wasUpdatedLastIter[0], 
+            wasUpdatedLastIter[1], 
+            wasUpdatedLastIter[2], 
+            wasUpdatedLastIter[3], 
+            wasUpdatedLastIter[4])
     copyHasChanged<<<gdim, bdim>>>(d_hasChanged, size);
     cudaDeviceSynchronize();
   }
+
+
+  //check for cycle
+
+  for (int source = 0; source < (*n); ++source) 
+  {
+    if (wasUpdatedLastIter[source]) {
+      bellmanFordIteration<<<gdim, bdim>>>(d_neighbouringNodesWeights[source], 
+                                            d_neighbouringNodes[source],
+                                            neighboursCount[source], 
+                                            d_predecessor, d_dist, d_hasChanged,
+                                            source);
+      cudaDeviceSynchronize();
+    }
+  }
+  bool hasChange = reduceLargeArray(d_hasChanged, size, threadsPerBlock);
+  if (iter == size - 1 && hasChange) 
+  {
+    tend = gettime();
+    cudaMemcpy((*result).predecessor, d_predecessor, size * sizeof(int),
+               cudaMemcpyDeviceToHost);
+    (*result).negativeCycleNode = source;
+    (*result).hasNegativeCycle = true;
+    (*result).timeInSeconds = tend - tstart;
+    freeMem(d_dist, d_neighbouringNodes, d_neighbouringNodesWeights,
+            neighboursCount, d_predecessor, d_hasChanged, size);
+    return result;
+  }
+
 
   tend = gettime();
   cudaMemcpy((*result).dist, d_dist, size * sizeof(int),
@@ -399,7 +449,7 @@ int main(int argc, char **argv) {
   bool hasCicle[18];
   double times[18];
 
-  for (int i = 0; i < 3; i++) {
+  for (int i = 3; i < 4; i++) {
     get_numbers(i, &numnodes, &maxNumEdges);
     if (maxNumEdges == numnodes) {
       maxNumEdges = maxNumEdges - 1;
@@ -421,6 +471,8 @@ int main(int argc, char **argv) {
     printf("Time for no cycle graph: %f\n", result->timeInSeconds);
     freeBFOutput(result);
 
+
+    //Second graph
     snprintf(filename, sizeof(filename), "../../data/graph_cycle_%d.edg_%d.txt",
              numnodes, maxNumEdges);
     result = bellmanFordCuda(filename, 0);

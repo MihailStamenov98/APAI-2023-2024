@@ -9,7 +9,7 @@ int main()
 {
     int numnodes, maxNumEdges;
     int edgesCount[18];
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 3; i++)
     {
         get_numbers(i, &numnodes, &maxNumEdges);
         if (maxNumEdges == numnodes)
@@ -23,7 +23,6 @@ int main()
         snprintf(filenameNoCycle, sizeof(filenameNoCycle), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeGraphToFile(destGNoCycle, filenameNoCycle);
         freeDestGraph(destGNoCycle);
-
 
         DestGraph *destGCycle = createGraphWithNegativeCycle(numnodes, maxNumEdges);
         edgesCount[2 * i + 1] = (destGCycle->numEdges);

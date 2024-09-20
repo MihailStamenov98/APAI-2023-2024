@@ -11,11 +11,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
+#include <windows.h>
 #define INF 1000000
 
-typedef struct
-{
+typedef struct {
   bool hasNegativeCycle;
   int negativeCycleNode;
   double timeInSeconds;
@@ -26,16 +25,12 @@ typedef struct
   int *dist;
 
 } BFOutput;
-void freeBFOutput(BFOutput *output)
-{
-  if (output != NULL)
-  {
-    if (output->predecessor != NULL)
-    {
+void freeBFOutput(BFOutput *output) {
+  if (output != NULL) {
+    if (output->predecessor != NULL) {
       free(output->predecessor);
     }
-    if (output->dist != NULL)
-    {
+    if (output->dist != NULL) {
       free(output->dist);
     }
     free(output);
@@ -45,12 +40,10 @@ void freeBFOutput(BFOutput *output)
 void readSourceGraphFromFileToDevice(const char *filename,
                                      int **&d_neighbouringNodes,
                                      int **&d_neighbouringNodesWeights, int *&n,
-                                     int *&edgesCount, int *&neighboursCount)
-{
+                                     int *&edgesCount, int *&neighboursCount) {
   // Open the file in binary read mode
   FILE *file = fopen(filename, "rb");
-  if (file == NULL)
-  {
+  if (file == NULL) {
     perror("Failed to open file");
     exit(EXIT_FAILURE);
   }
@@ -70,8 +63,7 @@ void readSourceGraphFromFileToDevice(const char *filename,
   int numEdgesOut = 0;
 
   // Read the inNeighbours and outNeighbours for each node
-  for (int i = 0; i < *n; i++)
-  {
+  for (int i = 0; i < *n; i++) {
     int inNeighbours;
     fread(&inNeighbours, sizeof(int), 1, file);
     fread(&neighboursCount[i], sizeof(int), 1, file);
@@ -88,8 +80,7 @@ void readSourceGraphFromFileToDevice(const char *filename,
   }
 
   // Read the edges
-  for (int i = 0; i < numEdgesOut; i++)
-  {
+  for (int i = 0; i < numEdgesOut; i++) {
     int source, dest, weight;
     fread(&source, sizeof(int), 1, file);
     fread(&dest, sizeof(int), 1, file);
@@ -101,8 +92,7 @@ void readSourceGraphFromFileToDevice(const char *filename,
   }
 
   // Copy the data to device
-  for (int i = 0; i < *n; i++)
-  {
+  for (int i = 0; i < *n; i++) {
     cudaMemcpy(d_neighbouringNodes[i], neighbouringNodes[i],
                neighboursCount[i] * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_neighbouringNodesWeights[i], neighbouringNodesWeights[i],
@@ -111,8 +101,7 @@ void readSourceGraphFromFileToDevice(const char *filename,
 
   // Free temporary allocations
   free(indexeForNode);
-  for (int i = 0; i < *n; i++)
-  {
+  for (int i = 0; i < *n; i++) {
     free(neighbouringNodes[i]);
     free(neighbouringNodesWeights[i]);
   }
@@ -122,8 +111,7 @@ void readSourceGraphFromFileToDevice(const char *filename,
   fclose(file);
 }
 
-double gettime(void)
-{
+double gettime(void) {
 #ifdef _WIN32
   LARGE_INTEGER frequency;
   LARGE_INTEGER start;
@@ -140,35 +128,28 @@ double gettime(void)
 
 __global__ void relax_initial(int *d_dist, int *d_predecessor,
                               bool *d_hasChanged, int n, int startNode,
-                              int maxVal)
-{
+                              int maxVal) {
   int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
   int i = bdim * bid + tid;
   int skip = bdim * gdim;
-  for (int k = i; k < n; k += skip)
-  {
+  for (int k = i; k < n; k += skip) {
     d_predecessor[k] = -1;
     d_hasChanged[k] = false;
 
-    if (k != startNode)
-    {
+    if (k != startNode) {
       d_dist[k] = maxVal;
-    }
-    else
-    {
+    } else {
       d_dist[startNode] = 0;
     }
   }
   __syncthreads();
 }
-__global__ void copyHasChanged(bool *hasChanged, int n)
-{
+__global__ void copyHasChanged(bool *hasChanged, int n) {
   int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
   int i = bdim * bid + tid;
   int skip = bdim * gdim;
 
-  for (int j = i; j < n; j += skip)
-  {
+  for (int j = i; j < n; j += skip) {
     hasChanged[j] = false;
   }
   __syncthreads();
@@ -176,19 +157,16 @@ __global__ void copyHasChanged(bool *hasChanged, int n)
 
 __global__ void bellmanFordIteration(int *weights, int *neighbours,
                                      int neighboursCount, int *predecessor,
-                                     int *dist, bool *hasChanged, int source)
-{
+                                     int *dist, bool *hasChanged, int source) {
   int bdim = blockDim.x, gdim = gridDim.x, bid = blockIdx.x, tid = threadIdx.x;
   int i = bdim * bid + tid;
   int skip = bdim * gdim;
-  for (int edgeIndex = i; edgeIndex < neighboursCount; edgeIndex += skip)
-  {
+  for (int edgeIndex = i; edgeIndex < neighboursCount; edgeIndex += skip) {
 
     int destination = neighbours[edgeIndex];
     int weight = weights[edgeIndex];
     int new_dist = dist[source] + weight;
-    if (new_dist < dist[destination])
-    {
+    if (new_dist < dist[destination]) {
       hasChanged[destination] = true;
       dist[destination] = new_dist;
       predecessor[destination] = source;
@@ -198,45 +176,37 @@ __global__ void bellmanFordIteration(int *weights, int *neighbours,
 }
 
 // Kernel to perform block-level reduction
-__global__ void blockReduceOr(bool *input, bool *blockResults, int size)
-{
+__global__ void blockReduceOr(bool *input, bool *blockResults, int size) {
   extern __shared__ bool shared[];
 
   int tid = threadIdx.x;
   int index = blockIdx.x * blockDim.x + threadIdx.x;
 
   // Load input into shared memory
-  if (index < size)
-  {
+  if (index < size) {
     shared[tid] = input[index];
-  }
-  else
-  {
+  } else {
     shared[tid] = false; // If index is out of bounds, use false
   }
 
   __syncthreads();
 
   // Perform reduction in shared memory
-  for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
-  {
-    if (tid < stride)
-    {
+  for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+    if (tid < stride) {
       shared[tid] = shared[tid] || shared[tid + stride];
     }
     __syncthreads();
   }
 
   // Write the result of this block's reduction to the blockResults array
-  if (tid == 0)
-  {
+  if (tid == 0) {
     blockResults[blockIdx.x] = shared[0];
   }
 }
 
 // Function to handle multi-pass reduction
-bool reduceLargeArray(bool *d_input, int size, int blockSize)
-{
+bool reduceLargeArray(bool *d_input, int size, int blockSize) {
   int gridSize = (size + blockSize - 1) / blockSize;
   bool *d_intermediate;
   bool h_result;
@@ -245,8 +215,7 @@ bool reduceLargeArray(bool *d_input, int size, int blockSize)
   cudaMalloc((void **)&d_intermediate, gridSize * sizeof(bool));
 
   // Continue reducing the array in multiple passes until gridSize == 1
-  while (gridSize > 1)
-  {
+  while (gridSize > 1) {
     size_t sharedMemorySize = blockSize * sizeof(bool);
 
     // Launch kernel to reduce the current input into d_intermediate
@@ -281,14 +250,12 @@ bool reduceLargeArray(bool *d_input, int size, int blockSize)
 
 void freeMem(int *d_dist, int **d_neighbouringNodes,
              int **d_neighbouringNodesWeights, int *neighboursCount,
-             int *d_predecessor, bool *d_hasChanged, int size)
-{
+             int *d_predecessor, bool *d_hasChanged, int size) {
   cudaFree(d_dist);
   cudaFree(d_hasChanged);
   cudaFree(d_predecessor);
   free(neighboursCount);
-  for (int i = 0; i < size; ++i)
-  {
+  for (int i = 0; i < size; ++i) {
     cudaFree(d_neighbouringNodes[i]);
     cudaFree(d_neighbouringNodesWeights[i]);
   }
@@ -296,8 +263,7 @@ void freeMem(int *d_dist, int **d_neighbouringNodes,
   free(d_neighbouringNodesWeights);
 }
 
-BFOutput *initBFOutput(int startNode, int size, int edgesCount)
-{
+BFOutput *initBFOutput(int startNode, int size, int edgesCount) {
   BFOutput *result;
   result = (BFOutput *)malloc(sizeof(BFOutput));
   result->startNode = startNode;
@@ -308,8 +274,7 @@ BFOutput *initBFOutput(int startNode, int size, int edgesCount)
   result->edgesCount = edgesCount;
   return result;
 }
-void get_numbers(int index, int *num1, int *num2)
-{
+void get_numbers(int index, int *num1, int *num2) {
   // Calculate the powers of 2 according to index
   *num1 = 512 << ((index + 1) / 2); // First number doubles every 2 indices
   *num2 =
@@ -317,8 +282,7 @@ void get_numbers(int index, int *num1, int *num2)
               2); // Second number doubles every 2 indices starting at index 2
 }
 
-BFOutput *bellmanFordCuda(const char *filename, int startNode)
-{
+BFOutput *bellmanFordCuda(const char *filename, int startNode) {
   // Pointer to the graph on the device
   int **d_neighbouringNodes;
   int **d_neighbouringNodesWeights;
@@ -359,12 +323,9 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
   wasUpdatedLastIter[startNode] = true;
   cudaDeviceSynchronize(); // wait for kernel to finish
 
-  for (int iter = 0; iter < size; iter++)
-  {
-    for (int source = 0; source < (*n); ++source)
-    {
-      if (wasUpdatedLastIter[source])
-      {
+  for (int iter = 0; iter < size; iter++) {
+    for (int source = 0; source < (*n); ++source) {
+      if (wasUpdatedLastIter[source]) {
         bellmanFordIteration<<<gdim, bdim>>>(
             d_neighbouringNodesWeights[source], d_neighbouringNodes[source],
             neighboursCount[source], d_predecessor, d_dist, d_hasChanged,
@@ -372,8 +333,7 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
       }
       cudaDeviceSynchronize();
       bool hasChange = reduceLargeArray(d_hasChanged, size, threadsPerBlock);
-      if (iter == size - 1 && hasChange)
-      {
+      if (iter == size - 1 && hasChange) {
         tend = gettime();
         cudaMemcpy((*result).predecessor, d_predecessor, size * sizeof(int),
                    cudaMemcpyDeviceToHost);
@@ -403,39 +363,29 @@ BFOutput *bellmanFordCuda(const char *filename, int startNode)
   return result;
 }
 
-void writeResult(BFOutput *out, const char *filename, bool writeAll)
-{
+void writeResult(BFOutput *out, const char *filename, bool writeAll) {
   FILE *file = fopen(filename, "w");
-  if (file == NULL)
-  {
+  if (file == NULL) {
     perror("Failed to open file");
     exit(EXIT_FAILURE);
   }
-  if ((*out).hasNegativeCycle)
-  {
+  if ((*out).hasNegativeCycle) {
     fprintf(file, "There is negative cycle in the graph\n");
     fprintf(file, "From this node one can bactrack to find the cycle = %d\n",
             (*out).negativeCycleNode);
-  }
-  else
-  {
+  } else {
     fprintf(file, "There is NOT negative cycle in the graph\n");
   }
   fprintf(file, "timeInSeconds = %lf\n", out->timeInSeconds);
   fprintf(file, "numberNodes = %d\n", out->numberNodes);
   fprintf(file, "numberEdges = %d\n", out->edgesCount);
 
-  if (writeAll)
-  {
-    for (int i = 0; i < (*out).numberNodes; i++)
-    {
-      if ((*out).hasNegativeCycle)
-      {
+  if (writeAll) {
+    for (int i = 0; i < (*out).numberNodes; i++) {
+      if ((*out).hasNegativeCycle) {
         fprintf(file, "Predcessor of node %d is node %d\n", i,
                 (*out).predecessor[i]);
-      }
-      else
-      {
+      } else {
         fprintf(file, "Distance from node %d to node = %d is %d\n",
                 (*out).startNode, i, (*out).dist[i]);
       }
@@ -444,17 +394,14 @@ void writeResult(BFOutput *out, const char *filename, bool writeAll)
   fclose(file);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   int numnodes, maxNumEdges;
   bool hasCicle[18];
   double times[18];
 
-  for (int i = 0; i < 9; i++)
-  {
+  for (int i = 0; i < 3; i++) {
     get_numbers(i, &numnodes, &maxNumEdges);
-    if (maxNumEdges == numnodes)
-    {
+    if (maxNumEdges == numnodes) {
       maxNumEdges = maxNumEdges - 1;
     }
     printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
@@ -469,18 +416,21 @@ int main(int argc, char **argv)
     writeResult(result, filename, true);
     hasCicle[2 * i] = result->hasNegativeCycle;
     times[2 * i] = result->timeInSeconds;
-    printf("First graph should not have cycle for no cycle: %d\n",
+    printf("First graph should not have cycle for no_cycle: %d\n",
            result->hasNegativeCycle);
-    printf("Time for no cycle: %f\n", result->timeInSeconds);
+    printf("Time for no cycle graph: %f\n", result->timeInSeconds);
     freeBFOutput(result);
 
     snprintf(filename, sizeof(filename), "../../data/graph_cycle_%d.edg_%d.txt",
              numnodes, maxNumEdges);
-    result = bellmanFordCuda("../../data/graph_cycle_5.txt", 0);
+    result = bellmanFordCuda(filename, 0);
     snprintf(filename, sizeof(filename),
              "../../results/cuda/graph_cycle_%d.edg_%d.txt", numnodes,
              maxNumEdges);
     writeResult(result, filename, true);
+    printf("Second graph should have cycle for no_cycle: %d\n",
+           result->hasNegativeCycle);
+    printf("Time for cycle graph: %f\n", result->timeInSeconds);
     hasCicle[2 * i + 1] = result->hasNegativeCycle;
     times[2 * i + 1] = result->timeInSeconds;
     freeBFOutput(result);
@@ -490,19 +440,16 @@ int main(int argc, char **argv)
   FILE *fileHasCicle =
       fopen("../../results/cuda/has_cicle.txt", "w"); // Open file in write mode
 
-  if (fileTimes == NULL)
-  {
+  if (fileTimes == NULL) {
     printf("Error opening file times.txt!\n");
     return 0;
   }
-  if (fileHasCicle == NULL)
-  {
+  if (fileHasCicle == NULL) {
     printf("Error opening file has_cicle.txt!\n");
     return 0;
   }
 
-  for (int i = 0; i < 18; i++)
-  {
+  for (int i = 0; i < 18; i++) {
     fprintf(fileTimes, "%f\n", times[i]); // Write each integer to a new line
     fprintf(fileHasCicle, "%d\n",
             hasCicle[i]); // Write each integer to a new line

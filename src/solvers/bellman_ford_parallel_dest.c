@@ -109,7 +109,7 @@ int main()
     bool hasCicle[18];
     double times[18];
 
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 3; i++)
     {
         get_numbers(i, &numnodes, &maxNumEdges);
         if (maxNumEdges == numnodes)

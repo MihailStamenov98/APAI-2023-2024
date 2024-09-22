@@ -21,8 +21,6 @@ SRC_GenerateGraph = ../generate_graphs/compare_graphs.c \
                     ../generate_graphs/graph_generator.c
 
 SRC_Calculate = calculate_results.c \
-				../generate_graphs/read_graphs.c \
-
 
 # CUDA source files
 SRC_CUDA = bellman_ford_cuda.cu

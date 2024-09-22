@@ -45,7 +45,7 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
     wasUpdatedLastIter[startNode] = true;
     bool isThereChangeInIteration;
 
-    for (int iter = 0; iter < g->numNodes-1; iter++)
+    for (int iter = 0; iter < g->numNodes - 1; iter++)
     {
         isThereChangeInIteration = false;
         for (int source = 0; source < (*g).numNodes; ++source)
@@ -68,7 +68,6 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
                     }
                 }
             }
-
         }
 #pragma omp parallel for reduction(| : isThereChangeInIteration)
         for (int i = 0; i < g->numNodes; ++i)
@@ -85,7 +84,6 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
             return result;
         }
     }
-
 
     isThereChangeInIteration = false;
     for (int source = 0; source < (*g).numNodes; ++source)
@@ -119,44 +117,16 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
         }
     }
 
-
-
-
     tstop = omp_get_wtime();
     (*result).timeInSeconds = tstop - tstart;
     return result;
 }
 
-void executeGraphs(char *templateName, int index, int graphCount) {
-  for (int i = 0; i < 9; i++)
-    {get_numbers(i, &numnodes, &maxNumEdges);
-        if (maxNumEdges == numnodes)
-        {
-            maxNumEdges = maxNumEdges - 1;
-        }
-        printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
-
-        char filename[70];
-        snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        SourceGraph *readGraph = readSourceGraphFromFile(filename);
-        BFOutput *result = bellmanFordSource(power_of_two(i), readGraph, 0);
-        snprintf(filename, sizeof(filename), "../../results/omp_source/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        writeResult(result, filename, false);
-        hasCicle[2 * i] = result->hasNegativeCycle;
-        times[2 * i] = result->timeInSeconds;
-        printf("First graph should not have cycle for no cycle: %d\n", result->hasNegativeCycle);
-        printf("Time for no cycle: %f\n", result->timeInSeconds);
-        freeBFOutput(result);
-        freeSourceGraph(readGraph);}
-}
-
-int main()
+void executeGraphs(char *templateRead, char *templateWrite, int graphCount, bool shouldHaveCycle)
 {
     int numnodes, maxNumEdges;
-    bool hasCicle[18];
-    double times[18];
 
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < graphCount; i++)
     {
         get_numbers(i, &numnodes, &maxNumEdges);
         if (maxNumEdges == numnodes)
@@ -166,30 +136,34 @@ int main()
         printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
 
         char filename[70];
-        snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        snprintf(filename, sizeof(filename), templateRead, numnodes, maxNumEdges);
         SourceGraph *readGraph = readSourceGraphFromFile(filename);
         BFOutput *result = bellmanFordSource(power_of_two(i), readGraph, 0);
-        snprintf(filename, sizeof(filename), "../../results/omp_source/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        snprintf(filename, sizeof(filename), templateWrite, numnodes, maxNumEdges);
         writeResult(result, filename, false);
-        hasCicle[2 * i] = result->hasNegativeCycle;
-        times[2 * i] = result->timeInSeconds;
-        printf("First graph should not have cycle for no cycle: %d\n", result->hasNegativeCycle);
-        printf("Time for no cycle: %f\n", result->timeInSeconds);
-        freeBFOutput(result);
-        freeSourceGraph(readGraph);
-
-        snprintf(filename, sizeof(filename), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        readGraph = readSourceGraphFromFile(filename);
-        result = bellmanFordSource(power_of_two(i), readGraph, 0);
-        snprintf(filename, sizeof(filename), "../../results/omp_source/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        writeResult(result, filename, false);
-        hasCicle[2 * i + 1] = result->hasNegativeCycle;
-        times[2 * i + 1] = result->timeInSeconds;
-        printf("Second graph should have cycle for no cycle: %d\n", result->hasNegativeCycle);
-        printf("Time for cycle: %f\n", result->timeInSeconds);
+        if (shouldHaveCycle)
+        {
+            printf("Time for graph %d_%d:      %f        , and should have cycle hasNegativeCycle= %d\n", numnodes, maxNumEdges, result->timeInSeconds, result->hasNegativeCycle);
+        }
+        else
+        {
+            printf("Time for graph %d_%d:      %f        , and should NOT have cycle hasNegativeCycle= %d\n", numnodes, maxNumEdges, result->timeInSeconds, result->hasNegativeCycle);
+        }
         freeBFOutput(result);
         freeSourceGraph(readGraph);
     }
-    
+}
+
+int main()
+{
+    executeGraphs("../../data/graph_no_cycle_%d.edg_%d.txt",
+                  "../../results/omp_source/graph_no_cycle_%d.edg_%d.txt",
+                  9,
+                  true);
+    executeGraphs("../../data/graph_cycle_%d.edg_%d.txt",
+                  "../../results/omp_source/graph_cycle_%d.edg_%d.txt",
+                  7,
+                  false);
+
     return 0;
 }

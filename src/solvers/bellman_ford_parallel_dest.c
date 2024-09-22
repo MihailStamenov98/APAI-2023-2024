@@ -52,7 +52,7 @@ BFOutput *bellmanFord(int p, DestGraph *g, int startNode)
         }
 #pragma omp parallel for reduction(| : has_changed) schedule(dynamic)
         for (int dest = 0; dest < (*g).numNodes; ++dest)
-        { 
+        {
             // int thread = omp_get_thread_num();
             //  printf("Thread %d works on node %d\n", thread, dest);
             for (int j = 0; j < (*g).nodes[dest].inNeighbours; ++j)
@@ -103,13 +103,11 @@ BFOutput *bellmanFord(int p, DestGraph *g, int startNode)
     return result;
 }
 
-int main()
+void executeGraphs(char *templateRead, char *templateWrite, int graphCount, bool shouldHaveCycle)
 {
     int numnodes, maxNumEdges;
-    bool hasCicle[18];
-    double times[18];
 
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < graphCount; i++)
     {
         get_numbers(i, &numnodes, &maxNumEdges);
         if (maxNumEdges == numnodes)
@@ -119,52 +117,32 @@ int main()
         printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
 
         char filename[70];
-        snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        snprintf(filename, sizeof(filename), templateRead, numnodes, maxNumEdges);
         DestGraph *readGraph = readDestGraphFromFile(filename);
         BFOutput *result = bellmanFord(power_of_two(i), readGraph, 0);
-        snprintf(filename, sizeof(filename), "../../results/omp_dest/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        snprintf(filename, sizeof(filename), templateWrite, numnodes, maxNumEdges);
         writeResult(result, filename, false);
-        hasCicle[2 * i] = result->hasNegativeCycle;
-        times[2 * i] = result->timeInSeconds;
-        printf("First graph should not have cycle for no cycle: %d\n", result->hasNegativeCycle);
-        printf("Time for no cycle: %f\n", result->timeInSeconds);
-        freeBFOutput(result);
-        freeDestGraph(readGraph);
-
-        snprintf(filename, sizeof(filename), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        readGraph = readDestGraphFromFile(filename);
-        result = bellmanFord(power_of_two(i), readGraph, 0);
-        snprintf(filename, sizeof(filename), "../../results/omp_dest/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        writeResult(result, filename, false);
-        hasCicle[2 * i + 1] = result->hasNegativeCycle;
-        times[2 * i + 1] = result->timeInSeconds;
-        printf("Second graph should have cycle for no cycle: %d\n", result->hasNegativeCycle);
-        printf("Time for cycle: %f\n", result->timeInSeconds);
+        if (shouldHaveCycle)
+        {
+            printf("Time for graph %d_%d:      %f        , and should have cycle hasNegativeCycle= %d\n", numnodes, maxNumEdges, result->timeInSeconds, result->hasNegativeCycle);
+        }
+        else
+        {
+            printf("Time for graph %d_%d:      %f        , and should NOT have cycle hasNegativeCycle= %d\n", numnodes, maxNumEdges, result->timeInSeconds, result->hasNegativeCycle);
+        }
         freeBFOutput(result);
         freeDestGraph(readGraph);
     }
-    FILE *fileTimes = fopen("../../results/omp_dest/times.txt", "w");        // Open file in write mode
-    FILE *fileHasCicle = fopen("../../results/omp_dest/has_cicle.txt", "w"); // Open file in write mode
+}
 
-    if (fileTimes == NULL)
-    {
-        printf("Error opening file times.txt!\n");
-        return 0;
-    }
-    if (fileHasCicle == NULL)
-    {
-        printf("Error opening file has_cicle.txt!\n");
-        return 0;
-    }
-
-    for (int i = 0; i < 18; i++)
-    {
-        fprintf(fileTimes, "%f\n", times[i]);       // Write each integer to a new line
-        fprintf(fileHasCicle, "%d\n", hasCicle[i]); // Write each integer to a new line
-    }
-
-    fclose(fileTimes);
-    fclose(fileHasCicle);
-    printf("OMP Dest ended\n");
-    return 0;
+int main()
+{
+    executeGraphs("../../data/graph_no_cycle_%d.edg_%d.txt",
+                  "../../results/omp_dest/graph_no_cycle_%d.edg_%d.txt",
+                  9,
+                  true);
+    executeGraphs("../../data/graph_cycle_%d.edg_%d.txt",
+                  "../../results/omp_dest/graph_cycle_%d.edg_%d.txt",
+                  9,
+                  false);
 }

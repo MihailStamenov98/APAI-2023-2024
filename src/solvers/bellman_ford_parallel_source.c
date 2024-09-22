@@ -164,6 +164,5 @@ int main()
                   "../../results/omp_source/graph_cycle_%d.edg_%d.txt",
                   7,
                   false);
-
     return 0;
 }

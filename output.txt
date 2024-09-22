@@ -1,7 +1,0 @@
-Compiling dest solution...
-mkdir -p obj && mkdir -p obj_generators && mkdir -p obj_cuda
-mkdir -p obj && mkdir -p obj_generators && mkdir -p obj_cuda
-gcc -Wall -Wextra -I../generate_graphs -fopenmp -c output_structures.c -o obj/output_structures.o 
-mkdir -p obj && mkdir -p obj_generators && mkdir -p obj_cuda
-gcc -Wall -Wextra -I../generate_graphs -fopenmp -c bellman_ford_parallel_dest.c -o obj/bellman_ford_parallel_dest.o 
-Failed to compile bf_dest.

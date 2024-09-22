@@ -93,16 +93,20 @@ int main() {
 
     // Read CUDA results and calculate throughput
     read_times_from_file("../../results/cuda/graph_no_cycle_%d.edg_%d.txt", 12, edges, times, false);
-    calculate_throughput(12, edges, times, "throughput_results_no_cycle.txt");
+    calculate_throughput(12, edges, times, "calculations/throughput_results_no_cycle.txt");
     read_times_from_file("../../results/cuda/graph_cycle_%d.edg_%d.txt", 12, edges, times, true);
-    calculate_throughput(12, edges, times, "throughput_results_with_cycle.txt");
+    calculate_throughput(12, edges, times, "calculations/throughput_results_with_cycle.txt");
 
 
     // Read OpenMP results and calculate weak scaling efficiency
     read_times_from_file("../../results/omp_dest/graph_no_cycle_%d.edg_%d.txt", 9, edges, times, false);
-    calculate_weak_scaling_efficiency(9, times, "weak_scaling_efficiency_results_no_cycle.txt");
+    calculate_weak_scaling_efficiency(9, times, "calculations/weak_scaling_efficiency_results_no_cycle.txt");
     read_times_from_file("../../results/omp_dest/graph_cycle_%d.edg_%d.txt", 9, edges, times, true);
-    calculate_weak_scaling_efficiency(9, times, "weak_scaling_efficiency_results_with_cycle.txt");
-    
+    calculate_weak_scaling_efficiency(9, times, "calculations/weak_scaling_efficiency_results_with_cycle.txt");
+    // Read OpenMP results and calculate weak scaling efficiency source
+    read_times_from_file("../../results/omp_source/graph_no_cycle_%d.edg_%d.txt", 9, edges, times, false);
+    calculate_weak_scaling_efficiency(9, times, "calculations/source_weak_scaling_efficiency_no_cycle.txt");
+    read_times_from_file("../../results/omp_source/graph_cycle_%d.edg_%d.txt", 7, edges, times, true);
+    calculate_weak_scaling_efficiency(7, times, "calculations/source_weak_scaling_efficiency_with_cycle.txt");
     return 0;
 }

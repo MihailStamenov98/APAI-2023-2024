@@ -19,4 +19,8 @@
 **/.vscode/
 /data*/*
 /results*/*
-bf_*
+
+**/bf_*
+**.txt
+**/generate_graphs
+**/calculate_results

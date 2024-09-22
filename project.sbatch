@@ -55,6 +55,16 @@ else
 fi
 
 
+echo "Compiling calculations..."
+make calculate
+if [ $? -eq 0 ]; then
+    echo "Running calculations..."
+    ./calculate_results
+else
+    echo "Failed to compile calculations."
+    exit 1
+fi
+
 wait
 
 echo "All tasks completed successfully."

@@ -86,6 +86,12 @@ void read_times_from_file(const char *fileTemplate, int numGraphs, int* edges, d
     }
 }
 
+void print(double* times , int count) {
+    for(int i =0; i<count; ++i) {
+        printf("%lf\n", times[i]);
+    }
+}
+
 int main() {
 
     double times[12];
@@ -93,20 +99,32 @@ int main() {
 
     // Read CUDA results and calculate throughput
     read_times_from_file("../../results/cuda/graph_no_cycle_%d.edg_%d.txt", 12, edges, times, false);
+    printf("Cuda\n");
+    print(times, 12);
     calculate_throughput(12, edges, times, "calculations/throughput_results_no_cycle.txt");
     read_times_from_file("../../results/cuda/graph_cycle_%d.edg_%d.txt", 12, edges, times, true);
+    printf("Cuda negative cycles\n");
+    print(times, 12);
     calculate_throughput(12, edges, times, "calculations/throughput_results_with_cycle.txt");
 
 
     // Read OpenMP results and calculate weak scaling efficiency
     read_times_from_file("../../results/omp_dest/graph_no_cycle_%d.edg_%d.txt", 9, edges, times, false);
     calculate_weak_scaling_efficiency(9, times, "calculations/weak_scaling_efficiency_results_no_cycle.txt");
+    printf("OMP Dest\n");
+    print(times, 9);
     read_times_from_file("../../results/omp_dest/graph_cycle_%d.edg_%d.txt", 9, edges, times, true);
     calculate_weak_scaling_efficiency(9, times, "calculations/weak_scaling_efficiency_results_with_cycle.txt");
+    printf("OMP Dest negative cycles\n");
+    print(times, 9);
     // Read OpenMP results and calculate weak scaling efficiency source
     read_times_from_file("../../results/omp_source/graph_no_cycle_%d.edg_%d.txt", 9, edges, times, false);
+    printf("OMP Source\n");
+    print(times, 9);
     calculate_weak_scaling_efficiency(9, times, "calculations/source_weak_scaling_efficiency_no_cycle.txt");
     read_times_from_file("../../results/omp_source/graph_cycle_%d.edg_%d.txt", 7, edges, times, true);
+    printf("OMP Source negative cycle\n");
+    print(times, 7);
     calculate_weak_scaling_efficiency(7, times, "calculations/source_weak_scaling_efficiency_with_cycle.txt");
     return 0;
 }

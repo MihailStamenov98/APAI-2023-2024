@@ -29,13 +29,12 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
 
     double tstart, tstop;
     tstart = omp_get_wtime();
-
     omp_set_num_threads(p);
     bool *wasUpdatedLastIter = (bool *)malloc((*g).numNodes * sizeof(bool));
     bool *isUpdatedThisIter = (bool *)malloc((*g).numNodes * sizeof(bool));
     // initialize distances
 #pragma omp parallel for
-    for (int i = 0; i < (*g).numNodes; i++)
+    for (int i = 0; i < g->numNodes; i++)
     {
         (*result).dist[i] = INF;
         (*result).predecessor[i] = -1;
@@ -46,14 +45,14 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
     wasUpdatedLastIter[startNode] = true;
     bool isThereChangeInIteration;
 
-    for (int iter = 0; iter < (*g).numNodes; iter++)
+    for (int iter = 0; iter < g->numNodes-1; iter++)
     {
         isThereChangeInIteration = false;
         for (int source = 0; source < (*g).numNodes; ++source)
         {
             if (wasUpdatedLastIter[source])
             {
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
                 for (int edgeIndex = 0; edgeIndex < (*g).nodes[source].outNeighbours;
                      ++edgeIndex)
                 {
@@ -69,25 +68,15 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
                     }
                 }
             }
-#pragma omp parallel for reduction(| : isThereChangeInIteration)
-            for (int i = 0; i < g->numNodes; ++i)
-            {
-                isThereChangeInIteration = isThereChangeInIteration | isUpdatedThisIter[i];
-            }
-            if (iter == g->numNodes - 1 && isThereChangeInIteration)
-            {
-                result->negativeCycleNode = source;
-                result->hasNegativeCycle = true;
-            }
-        }
 
+        }
 #pragma omp parallel for reduction(| : isThereChangeInIteration)
         for (int i = 0; i < g->numNodes; ++i)
         {
+            isThereChangeInIteration = isThereChangeInIteration | isUpdatedThisIter[i];
             wasUpdatedLastIter[i] = isUpdatedThisIter[i];
             isUpdatedThisIter[i] = false;
         }
-
         if (!isThereChangeInIteration)
         {
             result->hasNegativeCycle = false;
@@ -96,6 +85,42 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
             return result;
         }
     }
+
+
+    isThereChangeInIteration = false;
+    for (int source = 0; source < (*g).numNodes; ++source)
+    {
+        if (wasUpdatedLastIter[source] | isUpdatedThisIter[source])
+        {
+#pragma omp parallel for
+            for (int edgeIndex = 0; edgeIndex < (*g).nodes[source].outNeighbours;
+                 ++edgeIndex)
+            {
+                int destination = (*g).nodes[source].outEdges[edgeIndex].dest;
+                int weight = (*g).nodes[source].outEdges[edgeIndex].weight;
+                int new_dist = result->dist[source] + weight;
+                if (new_dist < result->dist[destination])
+                {
+                    isUpdatedThisIter[destination] = true;
+                    result->dist[destination] = new_dist;
+                    result->predecessor[destination] = source;
+                }
+            }
+        }
+#pragma omp parallel for reduction(| : isThereChangeInIteration)
+        for (int i = 0; i < g->numNodes; ++i)
+        {
+            isThereChangeInIteration = isThereChangeInIteration | isUpdatedThisIter[i];
+        }
+        if (isThereChangeInIteration)
+        {
+            result->negativeCycleNode = source;
+            result->hasNegativeCycle = true;
+        }
+    }
+
+
+
 
     tstop = omp_get_wtime();
     (*result).timeInSeconds = tstop - tstart;
@@ -122,7 +147,7 @@ int main()
         SourceGraph *readGraph = readSourceGraphFromFile(filename);
         BFOutput *result = bellmanFordSource(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_source/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        writeResult(result, filename, true);
+        writeResult(result, filename, false);
         hasCicle[2 * i] = result->hasNegativeCycle;
         times[2 * i] = result->timeInSeconds;
         printf("First graph should not have cycle for no cycle: %d\n", result->hasNegativeCycle);
@@ -134,7 +159,7 @@ int main()
         readGraph = readSourceGraphFromFile(filename);
         result = bellmanFordSource(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_source/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        writeResult(result, filename, true);
+        writeResult(result, filename, false);
         hasCicle[2 * i + 1] = result->hasNegativeCycle;
         times[2 * i + 1] = result->timeInSeconds;
         printf("Second graph should have cycle for no cycle: %d\n", result->hasNegativeCycle);

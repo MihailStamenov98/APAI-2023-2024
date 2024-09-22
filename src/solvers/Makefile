@@ -20,17 +20,23 @@ SRC_GenerateGraph = ../generate_graphs/compare_graphs.c \
                     ../generate_graphs/read_graphs.c \
                     ../generate_graphs/graph_generator.c
 
+SRC_Calculate = calculate_results.c \
+				../generate_graphs/read_graphs.c \
+
+
 # CUDA source files
 SRC_CUDA = bellman_ford_cuda.cu
 
 # Object directories
 OBJDIR_Solvers = obj
-OBJDIR_Generators = obj_generators
-OBJDIR_CUDA = obj_cuda
+OBJDIR_Generators = obj
+OBJDIR_CUDA = obj
+
 
 # Object files for C source files
 OBJ_dest = $(patsubst %.c,$(OBJDIR_Solvers)/%.o,$(SRC_SolverDest))
 OBJ_source = $(patsubst %.c,$(OBJDIR_Solvers)/%.o,$(SRC_SolverSource))
+OBJ_calculate = $(patsubst %.c,$(OBJDIR_Solvers)/%.o,$(SRC_Calculate))
 
 # Object files for graph generators
 OBJ_Generators = $(patsubst ../generate_graphs/%.c,$(OBJDIR_Generators)/%.o,$(SRC_GenerateGraph))
@@ -41,6 +47,7 @@ OBJ_CUDA = $(patsubst %.cu,$(OBJDIR_CUDA)/%.o,$(SRC_CUDA))
 # Target executables
 PROGRAM_DEST = bf_dest
 PROGRAM_SOURCE = bf_source
+PROGRAM_CALCULATE = calculate_results
 PROGRAM_CUDA = bf_cuda
 
 # Check for operating system
@@ -57,13 +64,15 @@ else
 endif
 
 # Targets to build specific programs
-.PHONY: dest source cuda all clean
+.PHONY: dest source cuda calculate all clean 
 
 # Target A builds bf_dest
 dest: $(PROGRAM_DEST)
 
 # Target B builds bf_source
 source: $(PROGRAM_SOURCE)
+
+calculate: $(PROGRAM_CALCULATE)
 
 # Target for CUDA program
 cuda: $(PROGRAM_CUDA)
@@ -74,6 +83,10 @@ $(PROGRAM_DEST): $(OBJ_dest) $(OBJ_Generators)
 
 # Build the executable for bf_source
 $(PROGRAM_SOURCE): $(OBJ_source) $(OBJ_Generators)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+# Build the executable for calculate_results
+$(PROGRAM_CALCULATE): $(OBJ_calculate) $(OBJ_Generators)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 # Build the CUDA executable

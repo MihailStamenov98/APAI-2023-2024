@@ -501,10 +501,10 @@ void writeResult(BFOutput *out, const char *filename, bool writeAll)
 int main(int argc, char **argv)
 {
   int numnodes, maxNumEdges;
-  bool hasCicle[18];
-  double times[18];
+  bool hasCicle[24];
+  double times[24];
 
-  for (int i = 3; i < 4; i++)
+  for (int i = 0; i < 12; i++)
   {
     get_numbers(i, &numnodes, &maxNumEdges);
     if (maxNumEdges == numnodes)
@@ -520,7 +520,7 @@ int main(int argc, char **argv)
     snprintf(filename, sizeof(filename),
              "../../results/cuda/graph_no_cycle_%d.edg_%d.txt", numnodes,
              maxNumEdges);
-    writeResult(result, filename, true);
+    writeResult(result, filename, false);
     hasCicle[2 * i] = result->hasNegativeCycle;
     times[2 * i] = result->timeInSeconds;
     printf("First graph should not have cycle for result->hasNegativeCycle: %d\n",
@@ -535,7 +535,7 @@ int main(int argc, char **argv)
     snprintf(filename, sizeof(filename),
              "../../results/cuda/graph_cycle_%d.edg_%d.txt", numnodes,
              maxNumEdges);
-    writeResult(result, filename, true);
+    writeResult(result, filename, false);
     printf("Second graph should have cycle for result->hasNegativeCycle: %d\n",
            result->hasNegativeCycle);
     printf("Time for cycle graph: %f\n", result->timeInSeconds);
@@ -559,7 +559,7 @@ int main(int argc, char **argv)
     return 0;
   }
 
-  for (int i = 0; i < 18; i++)
+  for (int i = 0; i < 24; i++)
   {
     fprintf(fileTimes, "%f\n", times[i]); // Write each integer to a new line
     fprintf(fileHasCicle, "%d\n",

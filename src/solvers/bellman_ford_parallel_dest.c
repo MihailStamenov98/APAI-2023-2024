@@ -52,7 +52,7 @@ BFOutput *bellmanFord(int p, DestGraph *g, int startNode)
         }
 #pragma omp parallel for reduction(| : has_changed) schedule(dynamic)
         for (int dest = 0; dest < (*g).numNodes; ++dest)
-        {
+        { 
             // int thread = omp_get_thread_num();
             //  printf("Thread %d works on node %d\n", thread, dest);
             for (int j = 0; j < (*g).nodes[dest].inNeighbours; ++j)
@@ -123,7 +123,7 @@ int main()
         DestGraph *readGraph = readDestGraphFromFile(filename);
         BFOutput *result = bellmanFord(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_dest/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        writeResult(result, filename, true);
+        writeResult(result, filename, false);
         hasCicle[2 * i] = result->hasNegativeCycle;
         times[2 * i] = result->timeInSeconds;
         printf("First graph should not have cycle for no cycle: %d\n", result->hasNegativeCycle);
@@ -135,7 +135,7 @@ int main()
         readGraph = readDestGraphFromFile(filename);
         result = bellmanFord(power_of_two(i), readGraph, 0);
         snprintf(filename, sizeof(filename), "../../results/omp_dest/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
-        writeResult(result, filename, true);
+        writeResult(result, filename, false);
         hasCicle[2 * i + 1] = result->hasNegativeCycle;
         times[2 * i + 1] = result->timeInSeconds;
         printf("Second graph should have cycle for no cycle: %d\n", result->hasNegativeCycle);

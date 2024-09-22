@@ -23,11 +23,22 @@ fi
 
 cd ../solvers/
 
+
+echo "Compiling source solution..."
+make source
+if [ $? -eq 0 ]; then
+    echo "Running bf_source..."
+    ./bf_source
+else
+    echo "Failed to compile bf_source."
+    exit 1
+fi
+
 echo "Compiling CUDA solution..."
 nvcc -o bf_cuda ./bellman_ford_cuda.cu
 if [ $? -eq 0 ];then 
     echo "Running bf_cuda..."
-    ./ bf_cuda 
+    ./bf_cuda 
 else 
     echo "Failed to compile bf_cuda." 
     exit 1 
@@ -43,15 +54,6 @@ else
     exit 1
 fi
 
-echo "Compiling source solution..."
-make source
-if [ $? -eq 0 ]; then
-    echo "Running bf_source..."
-    ./bf_source
-else
-    echo "Failed to compile bf_source."
-    exit 1
-fi
 
 wait
 

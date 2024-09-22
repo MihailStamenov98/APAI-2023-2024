@@ -38,7 +38,7 @@ DestGraph *createGraphNoNegativeCycle(int numNodes, int numNeighbours)
     }
     for (int i = 0; i < (*g).numNodes; i++)
     {
-        (*g).nodes[i].inNeighbours = randInt(1, 8 * (numNeighbours / 10) + numNeighbours % 10);
+        (*g).nodes[i].inNeighbours = randInt(1, 6 * (numNeighbours / 10) + numNeighbours % 10);
         g->numEdges += (g->nodes[i].inNeighbours);
         (*g).nodes[i].inEdges = (DestEdge *)malloc((*g).nodes[i].inNeighbours * sizeof(DestEdge));
         int lastNodeIndex = numNodes - 1;

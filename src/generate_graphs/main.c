@@ -8,8 +8,8 @@
 int main()
 {
     int numnodes, maxNumEdges;
-    int edgesCount[18];
-    for (int i = 0; i < 9; i++)
+    int edgesCount[24];
+    for (int i = 0; i < 12; i++)
     {
         get_numbers(i, &numnodes, &maxNumEdges);
         if (maxNumEdges == numnodes)
@@ -19,28 +19,31 @@ int main()
         printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
         DestGraph *destGNoCycle = createGraphNoNegativeCycle(numnodes, maxNumEdges);
         edgesCount[2 * i] = (destGNoCycle->numEdges);
-        char filenameNoCycle[50];
+        char filenameNoCycle[80];
         snprintf(filenameNoCycle, sizeof(filenameNoCycle), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeGraphToFile(destGNoCycle, filenameNoCycle);
         freeDestGraph(destGNoCycle);
 
         DestGraph *destGCycle = createGraphWithNegativeCycle(numnodes, maxNumEdges);
         edgesCount[2 * i + 1] = (destGCycle->numEdges);
-        char filenameCycle[50];
+        char filenameCycle[80];
         snprintf(filenameCycle, sizeof(filenameCycle), "../../data/graph_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
         writeGraphToFile(destGCycle, filenameCycle);
         freeDestGraph(destGCycle);
     }
-    FILE *file = fopen("../../data/stats.txt", "w"); // Open file in write mode
+    FILE *file = fopen("../../data/stats.txt", "a"); // Open file in write mode
     if (file == NULL)
     {
         printf("Error opening file!\n");
         return 0;
     }
 
-    for (int i = 0; i < 18; i++)
+    for (int i = 0; i < 12; i++)
     {
-        fprintf(file, "%d\n", edgesCount[i]); // Write each integer to a new line
+        get_numbers(i, &numnodes, &maxNumEdges);
+
+        fprintf(file, "%d   %d    %d    %s \n",numnodes, maxNumEdges, edgesCount[2*i], "no"); // Write each integer to a new line
+        fprintf(file, "%d   %d    %d    %s \n",numnodes, maxNumEdges, edgesCount[2*i+1], "yes"); // Write each integer to a new line
     }
 
     fclose(file);

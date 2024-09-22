@@ -1,0 +1,9 @@
+Graph 0: Weak Scaling Efficiency = 1.000000
+Graph 1: Weak Scaling Efficiency = 0.255681
+Graph 2: Weak Scaling Efficiency = 0.127730
+Graph 3: Weak Scaling Efficiency = 0.032547
+Graph 4: Weak Scaling Efficiency = 0.023818
+Graph 5: Weak Scaling Efficiency = 0.004059
+Graph 6: Weak Scaling Efficiency = 0.002050
+Graph 7: Weak Scaling Efficiency = 0.000500
+Graph 8: Weak Scaling Efficiency = 0.000252

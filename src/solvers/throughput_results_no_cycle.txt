@@ -1,0 +1,12 @@
+Graph 0: Throughput = 15713111.545988 items/second
+Graph 1: Throughput = 14586038.197385 items/second
+Graph 2: Throughput = 37550201.265095 items/second
+Graph 3: Throughput = 34149808.219178 items/second
+Graph 4: Throughput = 81065072.445185 items/second
+Graph 5: Throughput = 78508349.888254 items/second
+Graph 6: Throughput = 168749170.222854 items/second
+Graph 7: Throughput = 175179252.051870 items/second
+Graph 8: Throughput = 299481145.428269 items/second
+Graph 9: Throughput = 313004639.793233 items/second
+Graph 10: Throughput = 573427575.522851 items/second
+Graph 11: Throughput = 651105278.075841 items/second

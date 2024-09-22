@@ -127,6 +127,29 @@ BFOutput *bellmanFordSource(int p, SourceGraph *g, int startNode)
     return result;
 }
 
+void executeGraphs(char *templateName, int index, int graphCount) {
+  for (int i = 0; i < 9; i++)
+    {get_numbers(i, &numnodes, &maxNumEdges);
+        if (maxNumEdges == numnodes)
+        {
+            maxNumEdges = maxNumEdges - 1;
+        }
+        printf("For index = %d, numbers are %d, %d\n", i, numnodes, maxNumEdges);
+
+        char filename[70];
+        snprintf(filename, sizeof(filename), "../../data/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        SourceGraph *readGraph = readSourceGraphFromFile(filename);
+        BFOutput *result = bellmanFordSource(power_of_two(i), readGraph, 0);
+        snprintf(filename, sizeof(filename), "../../results/omp_source/graph_no_cycle_%d.edg_%d.txt", numnodes, maxNumEdges);
+        writeResult(result, filename, false);
+        hasCicle[2 * i] = result->hasNegativeCycle;
+        times[2 * i] = result->timeInSeconds;
+        printf("First graph should not have cycle for no cycle: %d\n", result->hasNegativeCycle);
+        printf("Time for no cycle: %f\n", result->timeInSeconds);
+        freeBFOutput(result);
+        freeSourceGraph(readGraph);}
+}
+
 int main()
 {
     int numnodes, maxNumEdges;
@@ -167,28 +190,6 @@ int main()
         freeBFOutput(result);
         freeSourceGraph(readGraph);
     }
-    FILE *fileTimes = fopen("../../results/omp_source/times.txt", "w");        // Open file in write mode
-    FILE *fileHasCicle = fopen("../../results/omp_source/has_cicle.txt", "w"); // Open file in write mode
-
-    if (fileTimes == NULL)
-    {
-        printf("Error opening file times.txt!\n");
-        return 0;
-    }
-    if (fileHasCicle == NULL)
-    {
-        printf("Error opening file has_cicle.txt!\n");
-        return 0;
-    }
-
-    for (int i = 0; i < 18; i++)
-    {
-        fprintf(fileTimes, "%f\n", times[i]);       // Write each integer to a new line
-        fprintf(fileHasCicle, "%d\n", hasCicle[i]); // Write each integer to a new line
-    }
-
-    fclose(fileTimes);
-    fclose(fileHasCicle);
-    printf("OMP Source finished\n");
+    
     return 0;
 }
